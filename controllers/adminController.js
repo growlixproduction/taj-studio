@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const fs = require('fs');
 const path = require('path');
+const { uploadFile, deleteFile } = require('../utils/storage');
 
 exports.dashboard = async (req, res, next) => {
   try {
@@ -43,10 +44,10 @@ exports.uploadVideo = async (req, res, next) => {
         req.flash('error', 'Video file is required for Upload video type');
         return res.redirect('/admin/upload-video');
       }
-      file_path = '/uploads/videos/' + req.files['video_file'][0].filename;
+      file_path = await uploadFile(req.files['video_file'][0], 'videos');
       
       if (req.files['thumbnail']) {
-        thumbnail = '/uploads/photos/' + req.files['thumbnail'][0].filename;
+        thumbnail = await uploadFile(req.files['thumbnail'][0], 'photos');
       }
     }
 
@@ -78,9 +79,10 @@ exports.uploadPhotos = async (req, res, next) => {
 
   try {
     for (const file of req.files) {
+      const filePath = await uploadFile(file, 'photos');
       await db.query(
         'INSERT INTO photos (category, file_path, alt_text) VALUES (?,?,?)',
-        [category, '/uploads/photos/' + file.filename, alt_text || '']
+        [category, filePath, alt_text || '']
       );
     }
     
@@ -126,21 +128,9 @@ exports.messages = async (req, res, next) => {
 exports.deleteVideo = async (req, res, next) => {
   try {
     const [rows] = await db.query('SELECT * FROM videos WHERE id = ?', [req.params.id]);
-    if (rows.length) {
-      // Delete local video file if it exists
-      if (rows[0].file_path) {
-        const fullPath = path.join(__dirname, '../public', rows[0].file_path);
-        if (fs.existsSync(fullPath)) {
-          fs.unlinkSync(fullPath);
-        }
-      }
-      // Delete local thumbnail file if it exists and is local
-      if (rows[0].thumbnail && rows[0].thumbnail.startsWith('/uploads/')) {
-        const thumbPath = path.join(__dirname, '../public', rows[0].thumbnail);
-        if (fs.existsSync(thumbPath)) {
-          fs.unlinkSync(thumbPath);
-        }
-      }
+    if (rows && rows.length) {
+      if (rows[0].file_path) await deleteFile(rows[0].file_path);
+      if (rows[0].thumbnail) await deleteFile(rows[0].thumbnail);
     }
     
     await db.query('DELETE FROM videos WHERE id = ?', [req.params.id]);
@@ -156,11 +146,8 @@ exports.deleteVideo = async (req, res, next) => {
 exports.deletePhoto = async (req, res, next) => {
   try {
     const [rows] = await db.query('SELECT * FROM photos WHERE id = ?', [req.params.id]);
-    if (rows.length && rows[0].file_path) {
-      const fullPath = path.join(__dirname, '../public', rows[0].file_path);
-      if (fs.existsSync(fullPath)) {
-        fs.unlinkSync(fullPath);
-      }
+    if (rows && rows.length && rows[0].file_path) {
+      await deleteFile(rows[0].file_path);
     }
     
     await db.query('DELETE FROM photos WHERE id = ?', [req.params.id]);
@@ -181,9 +168,11 @@ exports.settingsPage = async (req, res, next) => {
   try {
     const [settingsRows] = await db.query('SELECT setting_key, setting_value FROM settings');
     const settings = {};
-    settingsRows.forEach(row => {
-      settings[row.setting_key] = row.setting_value;
-    });
+    if (Array.isArray(settingsRows)) {
+      settingsRows.forEach(row => {
+        settings[row.setting_key] = row.setting_value;
+      });
+    }
     const [heroSlides] = await db.query('SELECT * FROM hero_slides ORDER BY order_index ASC');
     const [ugcItems] = await db.query('SELECT * FROM ugc_items ORDER BY order_index ASC');
     
@@ -272,15 +261,13 @@ exports.updateBanners = async (req, res, next) => {
       'banner_videos_engagement','banner_videos_birthday','banner_videos_indoor'
     ];
     for (const key of bannerKeys) {
-      // Check if a file was uploaded for this key
       if (req.files && req.files[key] && req.files[key][0]) {
-        const filePath = '/uploads/photos/' + req.files[key][0].filename;
+        const filePath = await uploadFile(req.files[key][0], 'photos');
         await db.query(
           'INSERT INTO settings (setting_key, setting_value) VALUES (?,?) ON DUPLICATE KEY UPDATE setting_value=?',
           [key, filePath, filePath]
         );
       } else if (req.body[key] && req.body[key].trim()) {
-        // URL input
         const url = req.body[key].trim();
         await db.query(
           'INSERT INTO settings (setting_key, setting_value) VALUES (?,?) ON DUPLICATE KEY UPDATE setting_value=?',
@@ -304,7 +291,6 @@ exports.updateGeneralSettings = async (req, res, next) => {
     'contact_email', 'contact_instagram', 'contact_facebook', 'contact_youtube', 'contact_whatsapp'
   ];
   
-  // Detect target tab from form payload
   let targetTab = 'general';
   if (req.body.about_eyebrow !== undefined || req.file) {
     targetTab = 'about';
@@ -323,7 +309,7 @@ exports.updateGeneralSettings = async (req, res, next) => {
     }
     // Handle About Image upload
     if (req.file) {
-      const aboutImgPath = '/uploads/photos/' + req.file.filename;
+      const aboutImgPath = await uploadFile(req.file, 'photos');
       await db.query(
         'INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?',
         ['about_image', aboutImgPath, aboutImgPath]
@@ -344,8 +330,8 @@ exports.addHeroSlide = async (req, res, next) => {
     req.flash('error', 'Please select a hero slide image to upload.');
     return res.redirect('/admin/settings?tab=hero');
   }
-  const image_path = '/uploads/photos/' + req.file.filename;
   try {
+    const image_path = await uploadFile(req.file, 'photos');
     await db.query(
       'INSERT INTO hero_slides (image_path, title, subtitle, order_index) VALUES (?,?,?,?)',
       [image_path, title || '', subtitle || '', parseInt(order_index) || 0]
@@ -362,13 +348,8 @@ exports.addHeroSlide = async (req, res, next) => {
 exports.deleteHeroSlide = async (req, res, next) => {
   try {
     const [rows] = await db.query('SELECT * FROM hero_slides WHERE id = ?', [req.params.id]);
-    if (rows.length && rows[0].image_path) {
-      if (rows[0].image_path.startsWith('/uploads/')) {
-        const fullPath = path.join(__dirname, '../public', rows[0].image_path);
-        if (fs.existsSync(fullPath)) {
-          fs.unlinkSync(fullPath);
-        }
-      }
+    if (rows && rows.length && rows[0].image_path) {
+      await deleteFile(rows[0].image_path);
     }
     await db.query('DELETE FROM hero_slides WHERE id = ?', [req.params.id]);
     req.flash('success', 'Hero slide deleted successfully');
@@ -390,7 +371,7 @@ exports.addUgcItems = async (req, res, next) => {
     for (const file of req.files) {
       const type = file.mimetype.startsWith('video') ? 'video' : 'image';
       const folder = type === 'video' ? 'videos' : 'photos';
-      const file_path = `/uploads/${folder}/${file.filename}`;
+      const file_path = await uploadFile(file, folder);
       await db.query(
         'INSERT INTO ugc_items (type, file_path, order_index) VALUES (?,?,?)',
         [type, file_path, parseInt(order_index) || 0]
@@ -408,13 +389,8 @@ exports.addUgcItems = async (req, res, next) => {
 exports.deleteUgcItem = async (req, res, next) => {
   try {
     const [rows] = await db.query('SELECT * FROM ugc_items WHERE id = ?', [req.params.id]);
-    if (rows.length && rows[0].file_path) {
-      if (rows[0].file_path.startsWith('/uploads/')) {
-        const fullPath = path.join(__dirname, '../public', rows[0].file_path);
-        if (fs.existsSync(fullPath)) {
-          fs.unlinkSync(fullPath);
-        }
-      }
+    if (rows && rows.length && rows[0].file_path) {
+      await deleteFile(rows[0].file_path);
     }
     await db.query('DELETE FROM ugc_items WHERE id = ?', [req.params.id]);
     req.flash('success', 'Social UGC Reel deleted successfully');

@@ -6,3 +6,5 @@ node_modules/
 .agents/
 .system_generated/
 public/uploads/
+
+.vercel

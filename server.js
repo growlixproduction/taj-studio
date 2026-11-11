@@ -125,7 +125,11 @@ app.use((err, req, res, next) => {
   res.status(500).render('404', { title: '500 — Internal Server Error' });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Taj Studio running on port ${PORT}`);
-});
+if (require.main === module && !process.env.VERCEL) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Taj Studio running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
