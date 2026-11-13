@@ -3,6 +3,7 @@ const router = express.Router();
 const ctrl = require('../controllers/adminController');
 const pkgCtrl = require('../controllers/packageController');
 const brandCtrl = require('../controllers/brandController');
+const invoiceCtrl = require('../controllers/invoiceController');
 const auth = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 
@@ -70,5 +71,11 @@ router.get('/brands', brandCtrl.brandsPage);
 router.post('/brands/create', upload.single('logo_file'), brandCtrl.createBrand);
 router.post('/brands/update/:id', upload.single('logo_file'), brandCtrl.updateBrand);
 router.post('/brands/delete/:id', brandCtrl.deleteBrand);
+
+// Custom Quote & Invoice Generator Routes
+router.get('/invoices', invoiceCtrl.adminInvoicesPage);
+router.post('/invoices/create', invoiceCtrl.createInvoice);
+router.post('/invoices/update/:id', invoiceCtrl.updateInvoice);
+router.post('/invoices/delete/:id', invoiceCtrl.deleteInvoice);
 
 module.exports = router;

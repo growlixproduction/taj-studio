@@ -1,0 +1,666 @@
+<%- include('../partials/head') %>
+
+<style>
+  .inv-wrap { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; color: #1a1816; }
+  .inv-topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+  .inv-back { display: inline-flex; align-items: center; gap: 0.4rem; color: #9a7432; text-decoration: none; font-size: 0.92rem; font-weight: 600; }
+  .inv-back:hover { text-decoration: underline; }
+  .inv-page-title { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 700; color: #1a1816; margin: 0.3rem 0 0.2rem; }
+  .inv-page-sub { color: #574f47; font-size: 0.92rem; margin: 0; }
+
+  .inv-alert { padding: 1rem 1.25rem; border-radius: 10px; margin-bottom: 1.25rem; font-size: 0.94rem; line-height: 1.5; }
+  .inv-alert-success { background: #ecfdf5; border: 1.5px solid #16a34a; color: #14532d; }
+  .inv-alert-warn { background: #fefce8; border: 1.5px solid #ca8a04; color: #713f12; }
+  .inv-alert-err { background: #fef2f2; border: 1.5px solid #dc2626; color: #7f1d1d; }
+
+  .step-card {
+    background: #ffffff;
+    border: 1.5px solid #e2d8c8;
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-bottom: 1.4rem;
+    box-shadow: 0 4px 16px rgba(26, 24, 22, 0.05);
+  }
+  .step-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1.15rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1.5px solid #efe8dc;
+  }
+  .step-badge { display: inline-flex; align-items: center; gap: 0.65rem; font-size: 1.1rem; font-weight: 700; color: #1a1816; }
+  .step-num {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #c9a86c, #a47c38);
+    color: #111; font-size: 0.88rem; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .step-hint { font-size: 0.84rem; color: #6b6258; font-weight: 500; }
+
+  .inv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+  .inv-field label {
+    display: block; font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: #4a433b; margin-bottom: 0.4rem;
+  }
+  .inv-field input, .inv-field select, .inv-field textarea {
+    width: 100%; padding: 0.68rem 0.85rem; border-radius: 8px;
+    border: 1.5px solid #d5cab8; background: #ffffff; color: #1a1816;
+    font-size: 0.94rem; font-weight: 500; font-family: inherit; box-sizing: border-box;
+  }
+  .inv-field input::placeholder, .inv-field textarea::placeholder { color: #8c8276; }
+  .inv-field input:focus, .inv-field select:focus, .inv-field textarea:focus {
+    outline: none; border-color: #b58c42; box-shadow: 0 0 0 3px rgba(181, 140, 66, 0.16);
+  }
+
+  .preset-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem;
+    background: #fbf7ef; border: 1.5px dashed #c9a86c; border-radius: 10px;
+    padding: 0.85rem 1rem; margin-bottom: 1.15rem;
+  }
+  .preset-bar label { font-size: 0.88rem; font-weight: 700; color: #6e501b; margin: 0; }
+  .preset-bar select {
+    flex: 1; min-width: 220px; padding: 0.58rem 0.8rem; border-radius: 8px;
+    border: 1.5px solid #c9a86c; background: #ffffff; color: #1a1816; font-weight: 600;
+  }
+
+  .day-box {
+    background: #faf7f2; border: 1.5px solid #e4dac9; border-radius: 12px;
+    padding: 1.1rem; margin-bottom: 1rem;
+  }
+  .day-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.9rem; }
+  .day-top input {
+    flex: 1; min-width: 200px; padding: 0.58rem 0.8rem; border-radius: 8px;
+    border: 1.5px solid #d2c6b3; background: #ffffff; color: #1a1816;
+    font-weight: 700; font-size: 0.95rem;
+  }
+  .tick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.6rem; }
+  .tick-pill {
+    display: flex; align-items: center; gap: 0.55rem; padding: 0.6rem 0.8rem; border-radius: 8px;
+    border: 1.5px solid #ddd3c3; background: #ffffff; cursor: pointer;
+    font-size: 0.9rem; font-weight: 500; color: #2b2621; transition: all 0.15s ease; user-select: none;
+  }
+  .tick-pill:hover { border-color: #b58c42; }
+  .tick-pill input[type="checkbox"] { width: 18px; height: 18px; accent-color: #b58c42; cursor: pointer; margin: 0; }
+  .tick-pill.active { background: #f8eedb; border-color: #b58c42; color: #1a1816; font-weight: 600; }
+
+  .custom-day-input {
+    flex: 1; padding: 0.55rem 0.8rem; border-radius: 8px;
+    border: 1.5px solid #d5cab8; background: #ffffff; color: #1a1816; font-size: 0.9rem;
+  }
+
+  /* Bigger, clearer Deliverable Cards */
+  .deliv-row {
+    display: grid; grid-template-columns: 30px 1fr; gap: 0.85rem; align-items: start;
+    padding: 1rem; border-radius: 12px; border: 1.5px solid #e2d8c8;
+    background: #faf7f2; margin-bottom: 0.85rem;
+  }
+  .deliv-row.active { border-color: #b58c42; background: #fdf9f1; box-shadow: 0 2px 10px rgba(181,140,66,0.1); }
+  .deliv-row input[type="checkbox"] { width: 20px; height: 20px; margin-top: 0.45rem; accent-color: #b58c42; cursor: pointer; }
+  .deliv-fields { display: flex; flex-direction: column; gap: 0.55rem; }
+  .deliv-top-bar { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+  .deliv-title-inp {
+    flex: 1; min-width: 240px; padding: 0.6rem 0.85rem; border-radius: 8px;
+    border: 1.5px solid #d5cab8; background: #ffffff; color: #1a1816;
+    font-size: 0.95rem; font-weight: 700;
+  }
+  .deliv-desc-inp {
+    width: 100%; padding: 0.65rem 0.85rem; border-radius: 8px;
+    border: 1.5px solid #d5cab8; background: #ffffff; color: #2b2621;
+    font-size: 0.92rem; line-height: 1.45; font-family: inherit; resize: vertical;
+    min-height: 62px; box-sizing: border-box;
+  }
+  .deliv-title-inp:focus, .deliv-desc-inp:focus { outline: none; border-color: #b58c42; }
+
+  .btn-gold {
+    background: linear-gradient(135deg, #c9a86c 0%, #a8823c 100%);
+    color: #111; font-weight: 700; border: none; border-radius: 9px;
+    padding: 0.78rem 1.5rem; cursor: pointer; font-size: 0.95rem;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 0.45rem;
+  }
+  .btn-outline {
+    background: #ffffff; color: #7c5b21; border: 1.5px solid #c9a86c;
+    border-radius: 8px; padding: 0.52rem 0.95rem; cursor: pointer;
+    font-size: 0.86rem; font-weight: 600; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 0.35rem;
+  }
+  .btn-outline:hover { background: #fbf5ea; }
+  .btn-danger {
+    background: #fee2e2; color: #991b1b; border: 1.5px solid #fca5a5;
+    border-radius: 7px; padding: 0.45rem 0.8rem; cursor: pointer;
+    font-size: 0.82rem; font-weight: 600;
+  }
+  .btn-wa {
+    background: #16a34a; color: #ffffff; font-weight: 700; border: none;
+    border-radius: 7px; padding: 0.48rem 0.85rem; cursor: pointer;
+    font-size: 0.84rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;
+  }
+
+  .summary-strip {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 1rem; background: #1a1816; color: #f8f5ef;
+    border: 1.5px solid #c9a86c; border-radius: 12px; padding: 1.1rem 1.3rem; margin-top: 1.1rem;
+  }
+  .inv-table-wrap { overflow-x: auto; }
+  .inv-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; color: #1a1816; }
+  .inv-table th, .inv-table td { text-align: left; padding: 0.8rem 0.7rem; border-bottom: 1px solid #ece4d7; vertical-align: middle; }
+  .inv-table th { color: #7c5b21; font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; background: #faf7f2; }
+  .badge-type { padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.76rem; font-weight: 700; }
+  .badge-quote { background: #f6ead2; color: #6e4e18; }
+  .badge-inv { background: #dcfce7; color: #166534; }
+</style>
+
+<header class="admin-navbar">
+  <a href="/admin/dashboard" class="admin-logo" style="text-decoration: none; color: inherit;">TAJ STUDIO <span>ADMIN</span></a>
+  <form action="/auth/logout" method="POST" style="margin: 0;">
+    <button type="submit" class="admin-logout-btn">Logout</button>
+  </form>
+</header>
+
+<main class="inv-wrap">
+  <div class="inv-topbar">
+    <div>
+      <a href="/admin/dashboard" class="inv-back">&larr; Back to Dashboard</a>
+      <h1 class="inv-page-title">Custom Quote &amp; Invoice Builder</h1>
+      <p class="inv-page-sub">Simply tick services, customize days &amp; deliverables, and send a branded PDF link to your client.</p>
+    </div>
+    <% if (editingInvoice) { %>
+      <a href="/admin/invoices" class="btn-outline">+ Create New Quote</a>
+    <% } %>
+  </div>
+
+  <% if (schemaMissing) { %>
+    <div class="inv-alert inv-alert-warn">
+      <strong>Database Table Missing:</strong> Please run the SQL in <code>db/invoices_schema.sql</code> inside your Supabase SQL Editor first so quotes &amp; invoices can be saved.
+    </div>
+  <% } %>
+
+  <% if (errorMsg) { %>
+    <div class="inv-alert inv-alert-err"><strong>Error:</strong> <%= errorMsg %></div>
+  <% } %>
+
+  <% if (createdQuote || updatedQuote) {
+    const qCode = createdQuote || updatedQuote;
+    const savedInv = invoices.find(i => i.quote_number === qCode);
+  %>
+    <div class="inv-alert inv-alert-success" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.75rem;">
+      <div>
+        <strong><%= createdQuote ? 'Quote / Invoice Created!' : 'Quote / Invoice Updated!' %></strong>
+        Reference: <code><%= qCode %></code>
+      </div>
+      <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+        <a href="/quote/<%= qCode %>" target="_blank" class="btn-gold" style="padding:0.5rem 1rem; font-size:0.86rem;">View / Download PDF</a>
+        <% if (savedInv) {
+          const digits = (savedInv.client_phone || '').replace(/[^0-9]/g, '');
+          const waPhone = digits.length === 10 ? '91' + digits : digits;
+          const quoteUrl = 'https://tajstudio.info/quote/' + qCode;
+          const waMsg = `Namaste ${savedInv.client_name} ji,\n\nThank you for connecting with *Taj Studio*! Here is your customized *${savedInv.doc_type}* (${qCode}) for *${savedInv.event_type}*:\n\nPackage: ${savedInv.package_title}\nFinal Amount: ₹${Number(savedInv.final_amount || 0).toLocaleString('en-IN')}/-\n\nView & Download Branded PDF:\n${quoteUrl}\n\nWarm regards,\nTaj Studio`;
+        %>
+          <a href="https://wa.me/<%= waPhone %>?text=<%= encodeURIComponent(waMsg) %>" target="_blank" class="btn-wa">Send on WhatsApp</a>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
+
+  <form id="invoiceForm" action="<%= editingInvoice ? '/admin/invoices/update/' + editingInvoice.id : '/admin/invoices/create' %>" method="POST">
+    <input type="hidden" name="day_wise_json" id="dayWiseJson">
+    <input type="hidden" name="deliverables_json" id="deliverablesJson">
+
+    <!-- STEP 1 -->
+    <section class="step-card">
+      <div class="step-head">
+        <div class="step-badge"><span class="step-num">1</span> Client &amp; Event Details</div>
+        <span class="step-hint">Basic info for the PDF header</span>
+      </div>
+
+      <% if (packages && packages.length) { %>
+        <div class="preset-bar">
+          <label for="packagePreset">Quick Fill from Saved Package:</label>
+          <select id="packagePreset">
+            <option value="">-- Choose a saved package to auto-fill --</option>
+            <% packages.forEach(p => { %>
+              <option value="<%= p.id %>"><%= p.title %> — ₹<%= Number(p.offer_price || 0).toLocaleString('en-IN') %></option>
+            <% }) %>
+          </select>
+        </div>
+      <% } %>
+
+      <div class="inv-grid">
+        <div class="inv-field">
+          <label>Document Type</label>
+          <select name="doc_type" id="docType">
+            <option value="Quotation" <%= (!editingInvoice || editingInvoice.doc_type === 'Quotation') ? 'selected' : '' %>>Quotation / Proposal</option>
+            <option value="Invoice" <%= (editingInvoice && editingInvoice.doc_type === 'Invoice') ? 'selected' : '' %>>Tax / Booking Invoice</option>
+          </select>
+        </div>
+        <div class="inv-field">
+          <label>Client Name *</label>
+          <input type="text" name="client_name" required placeholder="e.g. Rahul & Priya" value="<%= editingInvoice ? editingInvoice.client_name : '' %>">
+        </div>
+        <div class="inv-field">
+          <label>Client WhatsApp / Phone</label>
+          <input type="text" name="client_phone" placeholder="e.g. 9876543210" value="<%= editingInvoice ? (editingInvoice.client_phone || '') : '' %>">
+        </div>
+        <div class="inv-field">
+          <label>Client Email (Optional)</label>
+          <input type="email" name="client_email" placeholder="client@example.com" value="<%= editingInvoice ? (editingInvoice.client_email || '') : '' %>">
+        </div>
+        <div class="inv-field">
+          <label>Event Type</label>
+          <select name="event_type" id="eventType">
+            <% ['Wedding', 'Engagement / Ring Ceremony', 'Pre-Wedding Shoot', 'Anniversary Celebration', 'Reception', 'Haldi & Sangeet', 'Corporate / Commercial'].forEach(ev => { %>
+              <option value="<%= ev %>" <%= (editingInvoice && editingInvoice.event_type === ev) ? 'selected' : '' %>><%= ev %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="inv-field">
+          <label>Event Dates</label>
+          <input type="text" name="event_dates" placeholder="e.g. 12–14 Dec 2026" value="<%= editingInvoice ? (editingInvoice.event_dates || '') : '' %>">
+        </div>
+        <div class="inv-field">
+          <label>Venue / City</label>
+          <input type="text" name="venue" placeholder="e.g. Taj Palace, Udaipur" value="<%= editingInvoice ? (editingInvoice.venue || '') : '' %>">
+        </div>
+        <div class="inv-field">
+          <label>Package Title</label>
+          <input type="text" name="package_title" id="packageTitle" placeholder="e.g. Bespoke Royal Wedding Collection" value="<%= editingInvoice ? (editingInvoice.package_title || '') : 'Custom Wedding Collection' %>">
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="step-card">
+      <div class="step-head">
+        <div class="step-badge"><span class="step-num">2</span> Day-Wise Coverage (Tick Services Per Day)</div>
+        <button type="button" class="btn-outline" id="addDayBtn">+ Add Another Day</button>
+      </div>
+      <div id="daysContainer"></div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="step-card">
+      <div class="step-head">
+        <div class="step-badge"><span class="step-num">3</span> Deliverables &amp; Indian Wedding Descriptions</div>
+        <span class="step-hint">Editable Indian wedding descriptions</span>
+      </div>
+      <p class="step-hint" style="margin-top:0; margin-bottom:1rem;">Tick what is included for this client. Pre-written Indian wedding descriptions are clearly visible &amp; editable below.</p>
+      <div id="delivContainer"></div>
+      <div style="margin-top: 0.9rem; display: flex; justify-content: flex-end;">
+        <button type="button" class="btn-outline" id="addDelivBtn">+ Add Custom Deliverable</button>
+      </div>
+    </section>
+
+    <!-- STEP 4 -->
+    <section class="step-card">
+      <div class="step-head">
+        <div class="step-badge"><span class="step-num">4</span> Pricing, Advance &amp; Terms</div>
+        <span class="step-hint">Amounts in INR (₹)</span>
+      </div>
+
+      <div class="inv-grid">
+        <div class="inv-field">
+          <label>Package / MRP Value (₹)</label>
+          <input type="number" min="0" name="mrp_total" id="mrpTotal" value="<%= editingInvoice ? Number(editingInvoice.mrp_total || 0) : 130000 %>">
+        </div>
+        <div class="inv-field">
+          <label>Special Discount (₹)</label>
+          <input type="number" min="0" name="discount" id="discountAmt" value="<%= editingInvoice ? Number(editingInvoice.discount || 0) : 10000 %>">
+        </div>
+        <div class="inv-field">
+          <label>Final Quoted Amount (₹)</label>
+          <input type="number" min="0" name="final_amount" id="finalAmount" value="<%= editingInvoice ? Number(editingInvoice.final_amount || 0) : 120000 %>">
+        </div>
+        <div class="inv-field">
+          <label>Advance Paid (₹)</label>
+          <input type="number" min="0" name="advance_paid" id="advancePaid" value="<%= editingInvoice ? Number(editingInvoice.advance_paid || 0) : 0 %>">
+        </div>
+      </div>
+
+      <div class="summary-strip">
+        <div>
+          <span style="color:#d6cfc3; font-size:0.88rem;">Final Total:</span>
+          <strong id="dispFinal" style="color:#e6c67c; font-size:1.15rem; margin-left:0.35rem;">₹1,20,000</strong>
+          <span style="margin:0 0.75rem; color:rgba(255,255,255,0.25);">|</span>
+          <span style="color:#d6cfc3; font-size:0.88rem;">Balance Due:</span>
+          <strong id="dispBalance" style="color:#86efac; font-size:1.15rem; margin-left:0.35rem;">₹1,20,000</strong>
+        </div>
+        <button type="submit" class="btn-gold"><%= editingInvoice ? 'Update Quote / Invoice' : 'Save & Generate Branded PDF' %></button>
+      </div>
+
+      <div class="inv-grid" style="margin-top:1.1rem;">
+        <div class="inv-field">
+          <label>Special Note for Client</label>
+          <textarea name="notes" rows="3" placeholder="e.g. Includes complimentary family portrait frame & priority reel delivery."><%= editingInvoice ? (editingInvoice.notes || '') : '' %></textarea>
+        </div>
+        <div class="inv-field">
+          <label>Terms &amp; Conditions (One per line)</label>
+          <textarea name="terms" rows="3"><%= editingInvoice ? (editingInvoice.terms || defaultTerms) : defaultTerms %></textarea>
+        </div>
+      </div>
+    </section>
+  </form>
+
+  <!-- SAVED QUOTES & INVOICES -->
+  <section class="step-card">
+    <div class="step-head">
+      <div class="step-badge">Saved Quotations &amp; Invoices (<%= invoices.length %>)</div>
+    </div>
+    <% if (!invoices.length) { %>
+      <p class="step-hint" style="margin:0;">No quotes or invoices saved yet. Create your first one above!</p>
+    <% } else { %>
+      <div class="inv-table-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Ref #</th>
+              <th>Type</th>
+              <th>Client</th>
+              <th>Event &amp; Dates</th>
+              <th>Final (₹)</th>
+              <th>Balance</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% invoices.forEach(inv => {
+              const finalAmt = Number(inv.final_amount || 0);
+              const advAmt = Number(inv.advance_paid || 0);
+              const balAmt = Math.max(0, finalAmt - advAmt);
+              const digits = (inv.client_phone || '').replace(/[^0-9]/g, '');
+              const waPhone = digits.length === 10 ? '91' + digits : digits;
+              const quoteUrl = 'https://tajstudio.info/quote/' + inv.quote_number;
+              const waMsg = `Namaste ${inv.client_name} ji,\n\nThank you for choosing *Taj Studio*! Here is your customized *${inv.doc_type}* (${inv.quote_number}) for *${inv.event_type}*:\n\nPackage: ${inv.package_title}\nFinal Amount: ₹${finalAmt.toLocaleString('en-IN')}/-\n\nView & Download Branded PDF:\n${quoteUrl}\n\nWarm regards,\nTaj Studio`;
+            %>
+              <tr>
+                <td><strong><%= inv.quote_number %></strong></td>
+                <td><span class="badge-type <%= inv.doc_type === 'Invoice' ? 'badge-inv' : 'badge-quote' %>"><%= inv.doc_type %></span></td>
+                <td>
+                  <div><strong><%= inv.client_name %></strong></div>
+                  <div style="font-size:0.8rem; color:#6b6258;"><%= inv.client_phone || 'No phone' %></div>
+                </td>
+                <td>
+                  <div><%= inv.event_type %></div>
+                  <div style="font-size:0.8rem; color:#6b6258;"><%= inv.event_dates || 'Dates TBD' %></div>
+                </td>
+                <td><strong>₹<%= finalAmt.toLocaleString('en-IN') %></strong></td>
+                <td>₹<%= balAmt.toLocaleString('en-IN') %></td>
+                <td>
+                  <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                    <a href="/quote/<%= inv.quote_number %>" target="_blank" class="btn-outline" style="padding:0.38rem 0.7rem; font-size:0.8rem;">View PDF</a>
+                    <a href="https://wa.me/<%= waPhone %>?text=<%= encodeURIComponent(waMsg) %>" target="_blank" class="btn-wa" style="padding:0.38rem 0.7rem; font-size:0.8rem;">WhatsApp</a>
+                    <a href="/admin/invoices?edit=<%= inv.id %>" class="btn-outline" style="padding:0.38rem 0.7rem; font-size:0.8rem;">Edit</a>
+                    <form action="/admin/invoices/delete/<%= inv.id %>" method="POST" style="margin:0;" onsubmit="return confirm('Delete <%= inv.quote_number %>?');">
+                      <button type="submit" class="btn-danger" style="padding:0.38rem 0.7rem; font-size:0.8rem;">Delete</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+</main>
+
+<script>
+  const DB_PACKAGES = <%- JSON.stringify(packages || []) %>;
+  const EDITING_DATA = <%- JSON.stringify(editingInvoice || null) %>;
+
+  const STANDARD_CREW = [
+    'Traditional Photography',
+    'Candid Photography',
+    'Traditional Videography',
+    'Film Cinematography',
+    'Drone Shoot',
+    'Creative Director',
+    'Light Equipment / Lightmen',
+    'Team Assistant'
+  ];
+
+  const DEFAULT_DAYS = [
+    { dayLabel: '1st Day — Haldi / Mehndi', services: ['Traditional Photography', 'Candid Photography', 'Traditional Videography', 'Film Cinematography', 'Team Assistant'] },
+    { dayLabel: '2nd Day — Sangeet / Engagement', services: ['Traditional Photography', 'Candid Photography', 'Traditional Videography', 'Film Cinematography', 'Light Equipment / Lightmen', 'Team Assistant'] },
+    { dayLabel: '3rd Day — Wedding & Reception', services: ['Traditional Photography', 'Candid Photography', 'Traditional Videography', 'Film Cinematography', 'Drone Shoot', 'Creative Director', 'Light Equipment / Lightmen', 'Team Assistant'] }
+  ];
+
+  const DEFAULT_DELIVERABLES = [
+    { checked: true, title: '4K Cinematic Wedding Film (30–45 Mins)', desc: 'Complete storytelling wedding film color-graded in 4K with licensed music & live audio vows.' },
+    { checked: true, title: 'Wedding Teaser / Trailer (2–3 Mins)', desc: 'Fast-paced cinematic highlight teaser ready to share with family & social media.' },
+    { checked: true, title: 'Instagram Reels (2–3 Vertical Edits)', desc: 'Trending vertical reels edited from Haldi, Sangeet & Wedding moments.' },
+    { checked: true, title: 'Full Traditional Ritual Video (1.5–2 Hours)', desc: 'Complete chronological coverage of every ritual, pheras, and family blessings.' },
+    { checked: true, title: 'Luxury Layflat Photo Album (50 Sheets)', desc: 'Premium 14x40 Italian-style layflat album with metallic/velvet cover & protective box.' },
+    { checked: true, title: 'Curated Edited Photos (600+ High-Res)', desc: 'Color-corrected & retouched candid + traditional photographs delivered via private cloud gallery.' },
+    { checked: false, title: 'Pre-Wedding Couple Shoot', desc: '1-day outdoor stylized couple shoot with outfit & location guidance.' },
+    { checked: false, title: 'Hard-Disk / Pen-Drive Raw Archive', desc: 'All raw photos and original camera footage backed up safely on client\'s drive.' }
+  ];
+
+  let daysState = (EDITING_DATA && Array.isArray(EDITING_DATA.day_wise_plan) && EDITING_DATA.day_wise_plan.length)
+    ? JSON.parse(JSON.stringify(EDITING_DATA.day_wise_plan))
+    : JSON.parse(JSON.stringify(DEFAULT_DAYS));
+
+  let delivState = (EDITING_DATA && Array.isArray(EDITING_DATA.deliverables) && EDITING_DATA.deliverables.length)
+    ? EDITING_DATA.deliverables.map(d => ({ checked: d.checked !== false, title: d.title || '', desc: d.desc || '' }))
+    : JSON.parse(JSON.stringify(DEFAULT_DELIVERABLES));
+
+  function renderDays() {
+    const container = document.getElementById('daysContainer');
+    container.innerHTML = '';
+
+    daysState.forEach((day, idx) => {
+      const box = document.createElement('div');
+      box.className = 'day-box';
+
+      const customServices = (day.services || []).filter(s => !STANDARD_CREW.includes(s));
+      const allOptions = [...STANDARD_CREW, ...customServices];
+
+      const top = document.createElement('div');
+      top.className = 'day-top';
+
+      const titleInp = document.createElement('input');
+      titleInp.type = 'text';
+      titleInp.value = day.dayLabel || `Day ${idx + 1}`;
+      titleInp.placeholder = `Day ${idx + 1} (e.g. Haldi & Mehndi)`;
+      titleInp.addEventListener('input', (e) => { daysState[idx].dayLabel = e.target.value; });
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn-danger';
+      removeBtn.textContent = 'Remove Day';
+      removeBtn.onclick = () => {
+        if (daysState.length > 1) {
+          daysState.splice(idx, 1);
+          renderDays();
+        }
+      };
+
+      top.appendChild(titleInp);
+      if (daysState.length > 1) top.appendChild(removeBtn);
+      box.appendChild(top);
+
+      const grid = document.createElement('div');
+      grid.className = 'tick-grid';
+
+      allOptions.forEach(serviceName => {
+        const isChecked = (day.services || []).includes(serviceName);
+        const label = document.createElement('label');
+        label.className = 'tick-pill' + (isChecked ? ' active' : '');
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = isChecked;
+        cb.onchange = () => {
+          if (cb.checked) {
+            if (!day.services.includes(serviceName)) day.services.push(serviceName);
+            label.classList.add('active');
+          } else {
+            day.services = day.services.filter(s => s !== serviceName);
+            label.classList.remove('active');
+          }
+        };
+
+        const span = document.createElement('span');
+        span.textContent = serviceName;
+        label.appendChild(cb);
+        label.appendChild(span);
+        grid.appendChild(label);
+      });
+
+      box.appendChild(grid);
+
+      const customRow = document.createElement('div');
+      customRow.style.cssText = 'display:flex; gap:0.5rem; margin-top:0.8rem;';
+      const customInp = document.createElement('input');
+      customInp.type = 'text';
+      customInp.className = 'custom-day-input';
+      customInp.placeholder = '+ Add custom service for this day (e.g. LED Wall, Crane)...';
+      const addCustomBtn = document.createElement('button');
+      addCustomBtn.type = 'button';
+      addCustomBtn.className = 'btn-outline';
+      addCustomBtn.textContent = '+ Add';
+      addCustomBtn.onclick = () => {
+        const val = customInp.value.trim();
+        if (!val) return;
+        if (!day.services.includes(val)) day.services.push(val);
+        renderDays();
+      };
+      customRow.appendChild(customInp);
+      customRow.appendChild(addCustomBtn);
+      box.appendChild(customRow);
+
+      container.appendChild(box);
+    });
+  }
+
+  function renderDeliverables() {
+    const container = document.getElementById('delivContainer');
+    container.innerHTML = '';
+
+    delivState.forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'deliv-row' + (item.checked ? ' active' : '');
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!item.checked;
+      cb.onchange = () => {
+        delivState[idx].checked = cb.checked;
+        row.classList.toggle('active', cb.checked);
+      };
+
+      const fieldsWrap = document.createElement('div');
+      fieldsWrap.className = 'deliv-fields';
+
+      const topBar = document.createElement('div');
+      topBar.className = 'deliv-top-bar';
+
+      const titleInp = document.createElement('input');
+      titleInp.type = 'text';
+      titleInp.className = 'deliv-title-inp';
+      titleInp.value = item.title || '';
+      titleInp.placeholder = 'Deliverable Title (e.g. 4K Cinematic Film)';
+      titleInp.oninput = (e) => { delivState[idx].title = e.target.value; };
+
+      const rmBtn = document.createElement('button');
+      rmBtn.type = 'button';
+      rmBtn.className = 'btn-danger';
+      rmBtn.textContent = 'Remove';
+      rmBtn.onclick = () => {
+        delivState.splice(idx, 1);
+        renderDeliverables();
+      };
+
+      topBar.appendChild(titleInp);
+      topBar.appendChild(rmBtn);
+
+      const descInp = document.createElement('textarea');
+      descInp.rows = 2;
+      descInp.className = 'deliv-desc-inp';
+      descInp.value = item.desc || '';
+      descInp.placeholder = 'Write clear Indian wedding description for the client...';
+      descInp.oninput = (e) => { delivState[idx].desc = e.target.value; };
+
+      fieldsWrap.appendChild(topBar);
+      fieldsWrap.appendChild(descInp);
+
+      row.appendChild(cb);
+      row.appendChild(fieldsWrap);
+      container.appendChild(row);
+    });
+  }
+
+  document.getElementById('addDayBtn').addEventListener('click', () => {
+    const n = daysState.length + 1;
+    daysState.push({ dayLabel: `Day ${n} — Reception / Custom Event`, services: ['Traditional Photography', 'Candid Photography', 'Traditional Videography'] });
+    renderDays();
+  });
+
+  document.getElementById('addDelivBtn').addEventListener('click', () => {
+    delivState.push({ checked: true, title: '', desc: '' });
+    renderDeliverables();
+  });
+
+  const presetSelect = document.getElementById('packagePreset');
+  if (presetSelect) {
+    presetSelect.addEventListener('change', () => {
+      const pkg = DB_PACKAGES.find(p => String(p.id) === String(presetSelect.value));
+      if (!pkg) return;
+      document.getElementById('packageTitle').value = pkg.title || '';
+      const mrp = Number(pkg.mrp_price || pkg.offer_price || 0);
+      const offer = Number(pkg.offer_price || mrp);
+      document.getElementById('mrpTotal').value = mrp;
+      document.getElementById('discountAmt').value = Math.max(0, mrp - offer);
+      document.getElementById('finalAmount').value = offer;
+      updateTotalsDisplay();
+
+      if (Array.isArray(pkg.highlights) && pkg.highlights.length) {
+        delivState = pkg.highlights.map(h => ({
+          checked: true,
+          title: typeof h === 'string' ? h : (h.title || ''),
+          desc: typeof h === 'string' ? '' : (h.desc || '')
+        }));
+        renderDeliverables();
+      }
+    });
+  }
+
+  const mrpEl = document.getElementById('mrpTotal');
+  const discEl = document.getElementById('discountAmt');
+  const finalEl = document.getElementById('finalAmount');
+  const advEl = document.getElementById('advancePaid');
+
+  function recalcFinalFromMrp() {
+    const mrp = Math.max(0, Number(mrpEl.value) || 0);
+    const disc = Math.max(0, Number(discEl.value) || 0);
+    finalEl.value = Math.max(0, mrp - disc);
+    updateTotalsDisplay();
+  }
+
+  function updateTotalsDisplay() {
+    const finalAmt = Math.max(0, Number(finalEl.value) || 0);
+    const advAmt = Math.max(0, Number(advEl.value) || 0);
+    const bal = Math.max(0, finalAmt - advAmt);
+    document.getElementById('dispFinal').textContent = '₹' + finalAmt.toLocaleString('en-IN');
+    document.getElementById('dispBalance').textContent = '₹' + bal.toLocaleString('en-IN');
+  }
+
+  mrpEl.addEventListener('input', recalcFinalFromMrp);
+  discEl.addEventListener('input', recalcFinalFromMrp);
+  finalEl.addEventListener('input', updateTotalsDisplay);
+  advEl.addEventListener('input', updateTotalsDisplay);
+
+  document.getElementById('invoiceForm').addEventListener('submit', () => {
+    const activeDelivs = delivState.filter(d => d.checked && (d.title || '').trim());
+    document.getElementById('dayWiseJson').value = JSON.stringify(daysState);
+    document.getElementById('deliverablesJson').value = JSON.stringify(activeDelivs);
+  });
+
+  renderDays();
+  renderDeliverables();
+  updateTotalsDisplay();
+</script>
+
+</body>
+</html>

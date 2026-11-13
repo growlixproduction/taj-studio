@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="icon" type="image/png" href="/images/taj-logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #171513;
+      --muted: #5b5349;
+      --gold: #c89d4c;
+      --gold-deep: #9c7227;
+      --cream: #faf6ee;
+      --border: #e5dac7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #dfd7c8;
+      color: var(--ink);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: #141210;
+      color: #f8f5ef;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.28);
+    }
+    .toolbar-left { font-size: 0.9rem; }
+    .toolbar-left strong { color: #e2bd73; }
+    .toolbar-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    .tb-btn {
+      border: none; border-radius: 8px; padding: 0.55rem 1.05rem;
+      font-size: 0.86rem; font-weight: 700; cursor: pointer;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .tb-gold { background: linear-gradient(135deg, #e2bd73, #b88b37); color: #111; }
+    .tb-wa { background: #22c55e; color: #052e16; }
+
+    /* Exact A4 Sheet Containers */
+    .pages-stack {
+      padding: 1.5rem 0 2.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+      align-items: center;
+    }
+    .a4-page {
+      width: 210mm;
+      min-height: 296mm;
+      max-width: 100%;
+      background: #ffffff;
+      box-shadow: 0 20px 50px rgba(23, 21, 19, 0.18);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+    .a4-page-break {
+      page-break-before: always;
+      break-before: page;
+    }
+
+    /* Graphical Dark Hero Banner */
+    .hero-band {
+      background: #151413;
+      color: #fff;
+      padding: 1.7rem 2rem 3.1rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-svg-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.28;
+    }
+    .hero-top {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .hero-title-wrap h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0;
+      line-height: 1;
+      text-transform: uppercase;
+      color: #ffffff;
+    }
+    .hero-tagline {
+      font-size: 0.78rem;
+      color: #d7ccb8;
+      margin-top: 0.35rem;
+      letter-spacing: 0.04em;
+    }
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.7rem;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(226, 189, 115, 0.55);
+      border-radius: 999px;
+      padding: 0.4rem 0.95rem 0.4rem 0.6rem;
+    }
+    .brand-pill img { height: 34px; width: auto; object-fit: contain; }
+    .brand-pill-text { font-size: 0.76rem; font-weight: 700; letter-spacing: 0.1em; color: #e8cb8b; }
+
+    /* Overlapping Graphical Client Banner */
+    .client-banner-wrap {
+      position: relative;
+      z-index: 3;
+      margin: -1.95rem 2rem 1.1rem;
+    }
+    .client-banner {
+      background: linear-gradient(135deg, #e59368 0%, #d97a54 100%);
+      color: #171513;
+      border-radius: 14px;
+      padding: 1.05rem 1.35rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.85rem;
+      box-shadow: 0 8px 22px rgba(217, 122, 84, 0.25);
+    }
+    .cb-left .cb-kicker {
+      font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;
+    }
+    .cb-left .cb-name {
+      font-family: 'Cormorant Garamond', serif; font-size: 1.65rem; font-weight: 700; margin: 0.08rem 0 0.2rem; line-height: 1.1;
+    }
+    .cb-left .cb-meta { font-size: 0.8rem; font-weight: 600; line-height: 1.45; }
+    .cb-right { text-align: right; }
+    .cb-right .cb-ref { font-size: 0.8rem; font-weight: 700; line-height: 1.42; }
+    .cb-amount-pill {
+      display: inline-block;
+      margin-top: 0.4rem;
+      background: #f5ca72;
+      color: #171513;
+      font-weight: 800;
+      font-size: 1rem;
+      padding: 0.35rem 0.95rem;
+      border-radius: 999px;
+      border: 1.5px solid #171513;
+    }
+
+    /* Page 2 Mini Header */
+    .mini-header {
+      background: #151413;
+      color: #f8f5ef;
+      padding: 0.9rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 3px solid var(--gold);
+    }
+    .mini-header-left { display: flex; align-items: center; gap: 0.65rem; }
+    .mini-header-left img { height: 28px; width: auto; }
+    .mini-header-left span { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; color: #e8cb8b; }
+    .mini-header-right { font-size: 0.78rem; color: #d7ccb8; font-weight: 600; }
+
+    .doc-body { padding: 0.25rem 2rem 1.2rem; flex: 1; }
+    .doc-body-p2 { padding: 1.15rem 2rem 1rem; flex: 1; }
+
+    /* Package Strip */
+    .pkg-strip {
+      background: var(--cream);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 0.7rem 1.1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+    .pkg-strip-title { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 700; color: var(--ink); }
+    .pkg-strip-badge {
+      background: #171513; color: #e8cb8b; font-size: 0.72rem; font-weight: 700;
+      padding: 0.28rem 0.75rem; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+
+    .sec-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 0.75rem 0 0.6rem;
+    }
+    .sec-head h3 {
+      font-family: 'Cormorant Garamond', serif; font-size: 1.38rem; font-weight: 700; margin: 0;
+    }
+    .sec-head span {
+      font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold-deep);
+    }
+
+    /* Numbered Day Cards */
+    .days-grid { display: flex; flex-direction: column; gap: 0.58rem; }
+    .day-row-card {
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      gap: 0.8rem;
+      align-items: start;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 11px;
+      padding: 0.72rem 0.95rem;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .day-num-circle {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #171513; color: #f5ca72;
+      font-weight: 800; font-size: 0.88rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .day-title { font-weight: 800; font-size: 0.9rem; margin-bottom: 0.36rem; color: var(--ink); }
+    .crew-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .crew-chip {
+      background: #faf3e4; border: 1px solid #e2cfa6; color: #4f3912;
+      font-size: 0.74rem; font-weight: 700; padding: 0.2rem 0.56rem; border-radius: 999px;
+    }
+
+    /* Graphical Table for Deliverables */
+    .deliv-table-wrap {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1.5px solid #171513;
+      margin-top: 0.25rem;
+    }
+    .deliv-table { width: 100%; border-collapse: collapse; }
+    .deliv-table thead { background: #171513; color: #ffffff; }
+    .deliv-table th {
+      text-align: left; padding: 0.58rem 0.85rem;
+      font-size: 0.71rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .deliv-table td {
+      padding: 0.55rem 0.85rem; border-bottom: 1px solid #ece4d6; vertical-align: top;
+      font-size: 0.8rem;
+    }
+    .deliv-table tbody tr { page-break-inside: avoid; break-inside: avoid; }
+    .deliv-table tbody tr:nth-child(even) { background: #faf7f0; }
+    .deliv-table tbody tr:last-child td { border-bottom: none; }
+    .num-pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 6px;
+      background: #f5ca72; color: #171513; font-weight: 800; font-size: 0.73rem;
+    }
+    .deliv-name { font-weight: 700; color: var(--ink); font-size: 0.84rem; }
+    .deliv-sub { color: var(--muted); font-size: 0.75rem; margin-top: 0.14rem; line-height: 1.38; }
+    .inc-badge {
+      display: inline-block; background: #dcfce7; color: #166534;
+      font-weight: 800; font-size: 0.7rem; padding: 0.18rem 0.52rem; border-radius: 999px;
+    }
+
+    /* Color-Blocked Bottom Cards */
+    .bottom-cards {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr 1fr;
+      gap: 0.8rem;
+      margin-top: 1rem;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .card-terra {
+      background: #f7dfd2;
+      border: 1.5px solid #e59368;
+      border-radius: 12px;
+      padding: 0.8rem 0.9rem;
+      font-size: 0.72rem;
+      color: #2b211c;
+      line-height: 1.42;
+    }
+    .card-amber {
+      background: #f9e6bc;
+      border: 1.5px solid #deb154;
+      border-radius: 12px;
+      padding: 0.8rem 0.9rem;
+      font-size: 0.74rem;
+      color: #241d11;
+      line-height: 1.48;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card-dark-price {
+      background: #171513;
+      color: #f8f5ef;
+      border: 1.5px solid #c89d4c;
+      border-radius: 12px;
+      padding: 0.8rem 0.95rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card-head-sm {
+      font-size: 0.69rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.35rem;
+    }
+    .card-terra ul { margin: 0.2rem 0 0; padding-left: 0.95rem; }
+    .card-terra li { margin-bottom: 0.18rem; }
+
+    .p-row { display: flex; justify-content: space-between; font-size: 0.77rem; padding: 0.22rem 0; color: #d6cfc3; }
+    .p-row.total {
+      border-top: 1px solid rgba(245, 202, 114, 0.35);
+      border-bottom: 1px solid rgba(245, 202, 114, 0.35);
+      margin: 0.28rem 0; padding: 0.36rem 0;
+      font-size: 0.92rem; font-weight: 800; color: #f5ca72;
+    }
+    .p-row.bal { font-weight: 800; color: #86efac; font-size: 0.85rem; }
+
+    .sig-block { margin-top: 0.55rem; padding-top: 0.45rem; border-top: 1px dashed rgba(23,21,19,0.25); }
+    .sig-script { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.25rem; font-weight: 700; line-height: 1; }
+    .sig-pill {
+      display: inline-block; margin-top: 0.2rem; background: #171513; color: #f5ca72;
+      font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; padding: 0.15rem 0.5rem; border-radius: 999px;
+    }
+
+    /* QR Footer Strip */
+    .qr-strip {
+      margin-top: 0.95rem;
+      background: var(--cream);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.85rem;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .qr-grid { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+    .qr-box {
+      background: #fff; border: 1.5px solid var(--border); border-radius: 9px;
+      padding: 0.38rem 0.45rem; text-align: center; width: 88px;
+    }
+    .qr-box svg { width: 64px; height: 64px; display: block; margin: 0 auto 0.2rem; }
+    .qr-box .ql { font-size: 0.65rem; font-weight: 800; color: var(--ink); }
+    .qr-box .qs { font-size: 0.58rem; color: var(--muted); }
+
+    /* Page 1 Fillers: Story Note + 3-Pillar Promise + Quick Summary */
+    .p1-promise-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.7rem;
+      margin-top: 0.9rem;
+    }
+    .p1-promise-card {
+      background: var(--cream);
+      border: 1.5px solid var(--border);
+      border-radius: 11px;
+      padding: 0.75rem 0.85rem;
+    }
+    .p1-promise-num {
+      font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--gold-deep); margin-bottom: 0.2rem;
+    }
+    .p1-promise-title { font-weight: 800; font-size: 0.84rem; color: var(--ink); margin-bottom: 0.25rem; }
+    .p1-promise-desc { font-size: 0.73rem; color: var(--muted); line-height: 1.42; }
+
+    .p1-note-strip {
+      margin-top: 0.85rem;
+      background: #171513;
+      color: #f8f5ef;
+      border-radius: 12px;
+      padding: 0.85rem 1.1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      border: 1.5px solid var(--gold);
+    }
+    .p1-note-text { flex: 1; min-width: 240px; font-size: 0.78rem; color: #dfd7ca; line-height: 1.48; }
+    .p1-note-text strong { color: #f5ca72; display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.2rem; }
+    .p1-quick-price { text-align: right; }
+    .p1-quick-price span { display: block; font-size: 0.72rem; color: #cfc6b8; }
+    .p1-quick-price strong { font-size: 1.18rem; color: #f5ca72; font-weight: 800; }
+
+    .page-foot {
+      padding: 0.6rem 2rem;
+      border-top: 1px solid var(--border);
+      background: #faf7f0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    @media screen and (max-width: 760px) {
+      .a4-page { min-height: auto; border-radius: 0; }
+      .bottom-cards { grid-template-columns: 1fr; }
+      .p1-promise-grid { grid-template-columns: 1fr; }
+      .client-banner-wrap { margin: -1.6rem 1rem 1rem; }
+      .hero-band { padding: 1.3rem 1.1rem 2.4rem; }
+      .doc-body, .doc-body-p2 { padding: 0.4rem 1rem 1rem; }
+      .cb-right { text-align: left; }
+    }
+
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      body { background: #fff; margin: 0; }
+      .toolbar { display: none !important; }
+      .pages-stack { padding: 0; gap: 0; display: block; }
+      .a4-page {
+        width: 210mm;
+        min-height: 296mm;
+        height: auto;
+        margin: 0;
+        box-shadow: none;
+        border-radius: 0;
+        overflow: visible;
+      }
+      .bottom-cards { grid-template-columns: 1.05fr 0.95fr 1fr !important; gap: 0.65rem; margin-top: 0.85rem; }
+      .p1-promise-grid { grid-template-columns: repeat(3, 1fr) !important; }
+      .doc-body-p2 { padding: 0.95rem 1.75rem 0.75rem; }
+      .deliv-table td { padding: 0.46rem 0.75rem; }
+      .qr-strip { margin-top: 0.75rem; padding: 0.65rem 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+  <%
+    const finalAmt = Number(invoice.final_amount || 0);
+    const mrpAmt = Number(invoice.mrp_total || 0);
+    const discAmt = Number(invoice.discount || 0);
+    const advAmt = Number(invoice.advance_paid || 0);
+    const balAmt = Math.max(0, finalAmt - advAmt);
+    const days = Array.isArray(invoice.day_wise_plan) ? invoice.day_wise_plan : [];
+    const delivs = Array.isArray(invoice.deliverables) ? invoice.deliverables : [];
+    const termsLines = (invoice.terms || '').split('\n').map(l => l.trim()).filter(Boolean);
+    const issuedDate = invoice.created_at ? new Date(invoice.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-IN');
+
+    const digits = (invoice.client_phone || '').replace(/[^0-9]/g, '');
+    const waPhone = digits.length === 10 ? '91' + digits : digits;
+    const shareLink = `${websiteUrl}/quote/${invoice.quote_number}`;
+    const waMsg = `Namaste ${invoice.client_name} ji,\n\nHere is your customized *${invoice.doc_type}* (${invoice.quote_number}) from *Taj Studio*:\nPackage: ${invoice.package_title}\nFinal Investment: ₹${finalAmt.toLocaleString('en-IN')}/-\n\nView & Save PDF:\n${shareLink}`;
+  %>
+
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <strong>Taj Studio</strong> — <%= invoice.doc_type %> <code><%= invoice.quote_number %></code> (A4 Print-Ready 2-Page Layout)
+    </div>
+    <div class="toolbar-actions">
+      <button type="button" class="tb-btn tb-gold" onclick="window.print()">Download / Save as PDF</button>
+      <% if (waPhone) { %>
+        <a href="https://wa.me/<%= waPhone %>?text=<%= encodeURIComponent(waMsg) %>" target="_blank" class="tb-btn tb-wa">Send on WhatsApp</a>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="pages-stack">
+    <!-- ==================== A4 PAGE 1 ==================== -->
+    <section class="a4-page">
+      <div>
+        <header class="hero-band">
+          <svg class="hero-svg-bg" viewBox="0 0 800 220" preserveAspectRatio="none">
+            <circle cx="720" cy="30" r="140" fill="none" stroke="#e2bd73" stroke-width="2" />
+            <circle cx="720" cy="30" r="100" fill="none" stroke="#e59368" stroke-width="1.5" />
+            <path d="M0,190 Q240,120 480,185 T800,150" fill="none" stroke="#e2bd73" stroke-width="1.5" />
+          </svg>
+          <div class="hero-top">
+            <div class="hero-title-wrap">
+              <h1><%= invoice.doc_type %></h1>
+              <div class="hero-tagline">Timeless Luxury Wedding Cinema &amp; Photography</div>
+            </div>
+            <div class="brand-pill">
+              <img src="/images/taj-logo.png" alt="Taj Studio">
+              <div class="brand-pill-text">TAJ STUDIO</div>
+            </div>
+          </div>
+        </header>
+
+        <div class="client-banner-wrap">
+          <div class="client-banner">
+            <div class="cb-left">
+              <div class="cb-kicker"><%= invoice.doc_type %> Prepared For</div>
+              <div class="cb-name"><%= invoice.client_name %></div>
+              <div class="cb-meta">
+                <% if (invoice.client_phone) { %>&#128222; <%= invoice.client_phone %> &nbsp; <% } %>
+                <% if (invoice.venue) { %>&#128205; <%= invoice.venue %><% } %>
+                <% if (invoice.client_email) { %><br>&#9993; <%= invoice.client_email %><% } %>
+              </div>
+            </div>
+            <div class="cb-right">
+              <div class="cb-ref">
+                Ref No: <strong><%= invoice.quote_number %></strong><br>
+                Issued: <%= issuedDate %><br>
+                <% if (invoice.event_dates) { %>Event: <strong><%= invoice.event_dates %></strong><% } %>
+              </div>
+              <div class="cb-amount-pill">Total: ₹<%= finalAmt.toLocaleString('en-IN') %>/-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="doc-body">
+          <div class="pkg-strip">
+            <div class="pkg-strip-title"><%= invoice.package_title || 'Custom Collection' %></div>
+            <div class="pkg-strip-badge"><%= invoice.event_type %></div>
+          </div>
+
+          <% if (days.length) { %>
+            <div class="sec-head">
+              <h3>Day-Wise Crew &amp; Coverage</h3>
+              <span><%= days.length %> Day(s) Planned</span>
+            </div>
+            <div class="days-grid">
+              <% days.forEach((d, idx) => { %>
+                <div class="day-row-card">
+                  <div class="day-num-circle"><%= String(idx + 1).padStart(2, '0') %></div>
+                  <div>
+                    <div class="day-title"><%= d.dayLabel || ('Day ' + (idx + 1)) %></div>
+                    <div class="crew-chips">
+                      <% (d.services || []).forEach(s => { %>
+                        <span class="crew-chip">&#10003; <%= s %></span>
+                      <% }) %>
+                    </div>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+
+          <div class="sec-head" style="margin-top: 1rem;">
+            <h3>The Taj Studio Promise</h3>
+            <span>Crafted For Your Celebration</span>
+          </div>
+          <div class="p1-promise-grid">
+            <div class="p1-promise-card">
+              <div class="p1-promise-num">01 • Cinema</div>
+              <div class="p1-promise-title">4K Storytelling</div>
+              <div class="p1-promise-desc">Stabilized gimbals, wireless lapel audio for pheras &amp; vows, and bespoke film-grade color grading.</div>
+            </div>
+            <div class="p1-promise-card">
+              <div class="p1-promise-num">02 • Moments</div>
+              <div class="p1-promise-title">Candid &amp; Traditional</div>
+              <div class="p1-promise-desc">Dedicated artists capturing unscripted emotions alongside timeless family portraits &amp; rituals.</div>
+            </div>
+            <div class="p1-promise-card">
+              <div class="p1-promise-num">03 • Safety</div>
+              <div class="p1-promise-title">Dual-Slot Backup</div>
+              <div class="p1-promise-desc">Every photo and clip is recorded on dual memory cards and backed up securely on our studio servers.</div>
+            </div>
+          </div>
+
+          <div class="p1-note-strip">
+            <div class="p1-note-text">
+              <strong><%= invoice.notes ? 'Special Studio Note' : 'Our Approach' %></strong>
+              <%= invoice.notes ? invoice.notes : 'Every wedding is a once-in-a-lifetime celebration of family bonds and traditions. Our team blends seamlessly into your festivities so you can enjoy every ritual stress-free.' %>
+            </div>
+            <div class="p1-quick-price">
+              <span><%= mrpAmt > finalAmt ? 'Special Package Investment (MRP ₹' + mrpAmt.toLocaleString('en-IN') + ')' : 'Package Investment' %></span>
+              <strong>₹<%= finalAmt.toLocaleString('en-IN') %>/-</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="page-foot">
+        <span>Taj Studio • <%= websiteUrl %></span>
+        <span>Page 1 of 2 — Deliverables &amp; Summary on Next Page &rarr;</span>
+      </footer>
+    </section>
+
+    <!-- ==================== A4 PAGE 2 ==================== -->
+    <section class="a4-page a4-page-break">
+      <div>
+        <header class="mini-header">
+          <div class="mini-header-left">
+            <img src="/images/taj-logo.png" alt="Taj Studio">
+            <span>TAJ STUDIO</span>
+          </div>
+          <div class="mini-header-right">
+            <%= invoice.doc_type %>: <strong><%= invoice.quote_number %></strong> &nbsp;|&nbsp; Client: <strong><%= invoice.client_name %></strong>
+          </div>
+        </header>
+
+        <div class="doc-body-p2">
+          <% if (delivs.length) { %>
+            <div class="sec-head" style="margin-top:0;">
+              <h3>Curated Deliverables &amp; Inclusions</h3>
+              <span><%= delivs.length %> Items</span>
+            </div>
+            <div class="deliv-table-wrap">
+              <table class="deliv-table">
+                <thead>
+                  <tr>
+                    <th style="width:46px;">#</th>
+                    <th>Deliverable &amp; Description</th>
+                    <th style="width:88px; text-align:right;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% delivs.forEach((item, idx) => { %>
+                    <tr>
+                      <td><span class="num-pill"><%= String(idx + 1).padStart(2, '0') %></span></td>
+                      <td>
+                        <div class="deliv-name"><%= item.title %></div>
+                        <% if (item.desc) { %>
+                          <div class="deliv-sub"><%= item.desc %></div>
+                        <% } %>
+                      </td>
+                      <td style="text-align:right;"><span class="inc-badge">Included</span></td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+
+          <div class="bottom-cards">
+            <div class="card-terra">
+              <div class="card-head-sm">Terms &amp; Conditions</div>
+              <% if (invoice.notes) { %>
+                <div style="margin-bottom:0.35rem; font-weight:700;">Note: <%= invoice.notes %></div>
+              <% } %>
+              <ul>
+                <% termsLines.forEach(line => { %>
+                  <li><%= line %></li>
+                <% }) %>
+              </ul>
+            </div>
+
+            <div class="card-amber">
+              <div>
+                <div class="card-head-sm">Find Us / Studio Info</div>
+                <div>&#128222; <%= (settings && settings.contact_phone) ? settings.contact_phone : '+91 98765 43210' %></div>
+                <div>&#9993; <%= (settings && settings.contact_email) ? settings.contact_email : 'hello@tajstudio.info' %></div>
+                <div>&#127760; <%= websiteUrl %></div>
+                <div style="margin-top:0.15rem;">&#128205; <%= (settings && settings.contact_address) ? settings.contact_address : 'India' %></div>
+              </div>
+              <div class="sig-block">
+                <div class="sig-script">Taj Studio</div>
+                <span class="sig-pill">AUTHORIZED STUDIO</span>
+              </div>
+            </div>
+
+            <div class="card-dark-price">
+              <div>
+                <div class="card-head-sm" style="color:#f5ca72;">Investment Summary</div>
+                <% if (mrpAmt > finalAmt) { %>
+                  <div class="p-row"><span>Package Value</span><span>₹<%= mrpAmt.toLocaleString('en-IN') %>/-</span></div>
+                <% } %>
+                <% if (discAmt > 0) { %>
+                  <div class="p-row"><span>Privilege Discount</span><span>- ₹<%= discAmt.toLocaleString('en-IN') %>/-</span></div>
+                <% } %>
+                <div class="p-row total"><span>Final Amount</span><span>₹<%= finalAmt.toLocaleString('en-IN') %>/-</span></div>
+                <div class="p-row"><span>Advance Paid</span><span>₹<%= advAmt.toLocaleString('en-IN') %>/-</span></div>
+              </div>
+              <div class="p-row bal"><span>Balance Due</span><span>₹<%= balAmt.toLocaleString('en-IN') %>/-</span></div>
+            </div>
+          </div>
+
+          <div class="qr-strip">
+            <div style="flex:1; min-width:200px;">
+              <div class="card-head-sm" style="color:var(--gold-deep); margin-bottom:0.2rem;">Scan &amp; Connect With Us</div>
+              <div style="font-size:0.78rem; color:var(--ink); line-height:1.48;">
+                Scan any QR code to visit our website portfolio, explore recent stories on Instagram, or chat directly on WhatsApp.
+              </div>
+            </div>
+            <div class="qr-grid">
+              <div class="qr-box">
+                <%- websiteQr %>
+                <div class="ql">Website</div>
+                <div class="qs">tajstudio.info</div>
+              </div>
+              <div class="qr-box">
+                <%- instagramQr %>
+                <div class="ql">Instagram</div>
+                <div class="qs">@tajstudio</div>
+              </div>
+              <div class="qr-box">
+                <%- whatsappQr %>
+                <div class="ql">WhatsApp</div>
+                <div class="qs">Direct Chat</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="page-foot">
+        <span>Taj Studio • <%= invoice.quote_number %></span>
+        <span>Page 2 of 2 — Thank You for Choosing Taj Studio</span>
+      </footer>
+    </section>
+  </div>
+</body>
+</html>
