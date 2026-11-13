@@ -1,0 +1,424 @@
+<%- include('../partials/head') %>
+
+<style>
+  .pkg-admin-grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+  @media (max-width: 1024px) {
+    .pkg-admin-grid { grid-template-columns: 1fr; }
+  }
+  .pkg-head-item {
+    background: var(--surface);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 0.85rem;
+    transition: box-shadow 0.2s ease;
+  }
+  .pkg-head-item:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  }
+  .builder-section-box {
+    background: #faf8f5;
+    border: 1px solid rgba(197, 160, 89, 0.35);
+    border-radius: 10px;
+    padding: 1.1rem;
+    margin-bottom: 1rem;
+  }
+  .builder-section-header {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    margin-bottom: 0.8rem;
+  }
+  .builder-point-row {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr auto;
+    gap: 0.5rem;
+    align-items: start;
+    margin-bottom: 0.55rem;
+    padding: 0.55rem;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  @media (max-width: 768px) {
+    .builder-point-row { grid-template-columns: 1fr; }
+  }
+  .btn-xs {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.78rem;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-gold {
+    background: linear-gradient(135deg, #d4af37, #b68d40);
+    color: #111;
+  }
+  .btn-dark {
+    background: #1a1a1a;
+    color: #fff;
+  }
+  .btn-danger-soft {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+  .pkg-list-card {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .pkg-badge-pill {
+    display: inline-block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(197, 160, 89, 0.16);
+    color: #8c6a2b;
+    font-weight: 700;
+  }
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+  }
+  .form-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.85rem;
+  }
+  @media (max-width: 640px) {
+    .form-row-2, .form-row-3 { grid-template-columns: 1fr; }
+  }
+</style>
+
+<header class="admin-navbar">
+  <a href="/admin/dashboard" class="admin-logo" style="text-decoration: none; color: inherit;">TAJ STUDIO <span>ADMIN</span></a>
+  <div style="display: flex; gap: 0.75rem; align-items: center;">
+    <a href="/pricing#event-packages" target="_blank" class="btn-xs btn-dark" style="text-decoration: none;">Preview Pricing Page</a>
+    <a href="/admin/dashboard" class="btn-xs" style="background: #eee; color: #111; text-decoration: none;">Dashboard</a>
+    <form action="/auth/logout" method="POST" style="margin: 0;">
+      <button type="submit" class="admin-logout-btn">Logout</button>
+    </form>
+  </div>
+</header>
+
+<main class="admin-main">
+  <div class="admin-header-row">
+    <div>
+      <h1 class="admin-title">Packages & Custom Heads Manager</h1>
+      <p style="color: var(--text-muted); font-size: 0.85rem;">Create custom package categories (Heads), add packages inside them, and configure point-wise headings with optional dropdown explanations.</p>
+    </div>
+  </div>
+
+  <% if (success && success.length > 0) { %>
+    <div style="background: #dcfce7; color: #166534; padding: 0.85rem 1.2rem; border-radius: 8px; margin-bottom: 1.25rem; font-weight: 500;">
+      <%= success[0] %>
+    </div>
+  <% } %>
+  <% if (error && error.length > 0) { %>
+    <div style="background: #fee2e2; color: #991b1b; padding: 0.85rem 1.2rem; border-radius: 8px; margin-bottom: 1.25rem; font-weight: 500;">
+      <%= error[0] %>
+    </div>
+  <% } %>
+
+  <div class="pkg-admin-grid">
+    <!-- LEFT COLUMN: MANAGE CUSTOM HEADS (CATEGORIES) -->
+    <div>
+      <div class="admin-card" style="margin-bottom: 1.5rem;">
+        <h3 style="margin-bottom: 1rem;">1. Create Custom Head (Category)</h3>
+        <form action="/admin/packages/category/create" method="POST">
+          <div class="form-group">
+            <label>Head Name * (e.g., Wedding Packages, Engagement, Birthday)</label>
+            <input type="text" name="name" class="form-control" required placeholder="e.g. Wedding Packages">
+          </div>
+          <div class="form-group">
+            <label>Subtitle / Short Description</label>
+            <input type="text" name="subtitle" class="form-control" placeholder="e.g. Multi-day cinematic wedding storytelling">
+          </div>
+          <div class="form-group">
+            <label>Display Order</label>
+            <input type="number" name="order_index" class="form-control" value="<%= categories.length + 1 %>">
+          </div>
+          <button type="submit" class="btn-xs btn-dark" style="width: 100%; padding: 0.7rem;">+ Add Custom Head</button>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <h3 style="margin-bottom: 1rem;">Existing Heads (<%= categories.length %>)</h3>
+        <% if (categories.length === 0) { %>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">No heads created yet. Add one above or run the SQL schema.</p>
+        <% } %>
+        <% categories.forEach(cat => { %>
+          <div class="pkg-head-item">
+            <form action="/admin/packages/category/update/<%= cat.id %>" method="POST">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <strong style="font-size: 0.95rem;"><%= cat.name %></strong>
+                <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.3rem; cursor: pointer;">
+                  <input type="checkbox" name="is_active" <%= cat.is_active ? 'checked' : '' %>> Active
+                </label>
+              </div>
+              <input type="text" name="name" class="form-control" value="<%= cat.name %>" style="margin-bottom: 0.45rem; font-size: 0.85rem; padding: 0.45rem 0.65rem;" required>
+              <input type="text" name="subtitle" class="form-control" value="<%= cat.subtitle || '' %>" placeholder="Subtitle" style="margin-bottom: 0.45rem; font-size: 0.8rem; padding: 0.45rem 0.65rem;">
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="number" name="order_index" class="form-control" value="<%= cat.order_index || 0 %>" style="width: 70px; font-size: 0.8rem; padding: 0.4rem;" title="Order">
+                <button type="submit" class="btn-xs btn-gold">Save</button>
+                <button type="button" class="btn-xs btn-danger-soft" onclick="if(confirm('Delete head & all its packages?')) document.getElementById('del-cat-<%= cat.id %>').submit();">Delete</button>
+              </div>
+            </form>
+            <form id="del-cat-<%= cat.id %>" action="/admin/packages/category/delete/<%= cat.id %>" method="POST" style="display:none;"></form>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: CREATE/EDIT PACKAGE + EXISTING PACKAGES -->
+    <div>
+      <div class="admin-card" style="margin-bottom: 2rem;" id="packageBuilderCard">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 id="builderTitle">2. Add New Package</h3>
+          <button type="button" id="resetBuilderBtn" class="btn-xs" style="background: #eee; color: #333; display: none;" onclick="resetPackageForm()">+ Switch to New Package</button>
+        </div>
+
+        <form id="packageForm" action="/admin/packages/create" method="POST">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Select Head (Category) *</label>
+              <select name="category_id" id="pkg_category_id" class="form-control" required>
+                <option value="">-- Choose a Head --</option>
+                <% categories.forEach(cat => { %>
+                  <option value="<%= cat.id %>"><%= cat.name %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Package Name * (e.g., Standard Wedding Package)</label>
+              <input type="text" name="name" id="pkg_name" class="form-control" required placeholder="e.g. Standard Wedding Package">
+            </div>
+          </div>
+
+          <div class="form-row-3">
+            <div class="form-group">
+              <label>Tagline / Duration</label>
+              <input type="text" name="tagline" id="pkg_tagline" class="form-control" placeholder="e.g. 03 Days Wedding Cover">
+            </div>
+            <div class="form-group">
+              <label>MRP (Optional Strikethrough)</label>
+              <input type="text" name="mrp" id="pkg_mrp" class="form-control" placeholder="e.g. 70,000">
+            </div>
+            <div class="form-group">
+              <label>Offer Price * (Only On)</label>
+              <input type="text" name="offer_price" id="pkg_offer_price" class="form-control" required placeholder="e.g. 60,000">
+            </div>
+          </div>
+
+          <div class="form-row-3" style="align-items: center;">
+            <div class="form-group">
+              <label>Ribbon Badge (Optional)</label>
+              <input type="text" name="badge" id="pkg_badge" class="form-control" placeholder="e.g. POPULAR, LUXURY, BEST SELLER">
+            </div>
+            <div class="form-group">
+              <label>Display Order</label>
+              <input type="number" name="order_index" id="pkg_order_index" class="form-control" value="1">
+            </div>
+            <div class="form-group" style="display: flex; gap: 1.2rem; padding-top: 1.2rem;">
+              <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-weight: 500;">
+                <input type="checkbox" name="is_featured" id="pkg_is_featured"> Highlight Card
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-weight: 500;" id="pkgActiveWrap">
+                <input type="checkbox" name="is_active" id="pkg_is_active" checked> Active
+              </label>
+            </div>
+          </div>
+
+          <hr style="margin: 1.25rem 0; border: none; border-top: 1px solid rgba(0,0,0,0.08);">
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+            <div>
+              <h4 style="margin: 0; font-size: 1rem;">Point-Wise Headings & Dropdown Descriptions</h4>
+              <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">Add headings (e.g., Deliverables, 1st Day Team) and points inside them. Add an optional dropdown explanation if you want clients to click & read what a service means.</p>
+            </div>
+            <button type="button" class="btn-xs btn-gold" onclick="addSectionBlock()">+ Add Heading</button>
+          </div>
+
+          <div id="sectionsBuilderContainer"></div>
+
+          <input type="hidden" name="sections_json" id="sections_json">
+
+          <button type="submit" id="submitPackageBtn" class="btn-xs btn-dark" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; margin-top: 0.5rem;">
+            Save Package to Database
+          </button>
+        </form>
+      </div>
+
+      <!-- EXISTING PACKAGES LIST -->
+      <div class="admin-card">
+        <h3 style="margin-bottom: 1rem;">All Packages (<%= packages.length %>)</h3>
+        <% if (packages.length === 0) { %>
+          <p style="color: var(--text-muted);">No packages found. Create one above!</p>
+        <% } %>
+
+        <% categories.forEach(cat => { 
+             const catPkgs = packages.filter(p => p.category_id === cat.id);
+             if (catPkgs.length > 0) { %>
+          <div style="margin-bottom: 1.5rem;">
+            <h4 style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.08em; color: #8c6a2b; margin-bottom: 0.65rem; border-bottom: 1px solid rgba(197,160,89,0.25); padding-bottom: 0.35rem;">
+              <%= cat.name %> (<%= catPkgs.length %>)
+            </h4>
+            <% catPkgs.forEach(pkg => { %>
+              <div class="pkg-list-card">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <strong style="font-size: 1rem;"><%= pkg.name %></strong>
+                    <% if (pkg.badge) { %><span class="pkg-badge-pill"><%= pkg.badge %></span><% } %>
+                    <% if (!pkg.is_active) { %><span class="pkg-badge-pill" style="background:#fee2e2;color:#b91c1c;">Hidden</span><% } %>
+                  </div>
+                  <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    <% if (pkg.tagline) { %><span><%= pkg.tagline %> • </span><% } %>
+                    <% if (pkg.mrp) { %><span style="text-decoration: line-through;">₹<%= pkg.mrp %></span> <% } %>
+                    <strong style="color: #111;">₹<%= pkg.offer_price %>/-</strong>
+                    • <%= Array.isArray(pkg.sections) ? pkg.sections.length : 0 %> Heading(s)
+                  </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button type="button" class="btn-xs btn-gold" onclick='editPackage(<%- JSON.stringify(pkg) %>)'>Edit</button>
+                  <form action="/admin/packages/delete/<%= pkg.id %>" method="POST" onsubmit="return confirm('Delete <%= pkg.name %>?');" style="margin:0;">
+                    <button type="submit" class="btn-xs btn-danger-soft">Delete</button>
+                  </form>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } }) %>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const container = document.getElementById('sectionsBuilderContainer');
+
+  function addSectionBlock(heading = '', items = [{ title: '', description: '' }]) {
+    const secDiv = document.createElement('div');
+    secDiv.className = 'builder-section-box';
+    secDiv.innerHTML = `
+      <div class="builder-section-header">
+        <input type="text" class="form-control section-heading-input" placeholder="Heading Title (e.g. Deliverables, 1st Day Team)" value="${escapeHtml(heading)}" style="font-weight: 600;">
+        <button type="button" class="btn-xs btn-dark" onclick="addPointRow(this)">+ Point</button>
+        <button type="button" class="btn-xs btn-danger-soft" onclick="this.closest('.builder-section-box').remove()">Remove Heading</button>
+      </div>
+      <div class="section-points-list"></div>
+    `;
+    const pointsList = secDiv.querySelector('.section-points-list');
+    (items && items.length ? items : [{ title: '', description: '' }]).forEach(pt => {
+      pointsList.appendChild(createPointElement(pt.title || '', pt.description || ''));
+    });
+    container.appendChild(secDiv);
+  }
+
+  function createPointElement(title = '', description = '') {
+    const row = document.createElement('div');
+    row.className = 'builder-point-row';
+    row.innerHTML = `
+      <input type="text" class="form-control point-title-input" placeholder="Point Heading (e.g. Traditional Photography)" value="${escapeHtml(title)}" style="font-size: 0.85rem;">
+      <input type="text" class="form-control point-desc-input" placeholder="Optional dropdown explanation..." value="${escapeHtml(description)}" style="font-size: 0.85rem;">
+      <button type="button" class="btn-xs btn-danger-soft" onclick="this.closest('.builder-point-row').remove()" title="Delete Point">&times;</button>
+    `;
+    return row;
+  }
+
+  function addPointRow(btn) {
+    const list = btn.closest('.builder-section-box').querySelector('.section-points-list');
+    list.appendChild(createPointElement());
+  }
+
+  function serializeSections() {
+    const boxes = container.querySelectorAll('.builder-section-box');
+    const result = [];
+    boxes.forEach(box => {
+      const heading = box.querySelector('.section-heading-input').value.trim();
+      const items = [];
+      box.querySelectorAll('.builder-point-row').forEach(row => {
+        const title = row.querySelector('.point-title-input').value.trim();
+        const description = row.querySelector('.point-desc-input').value.trim();
+        if (title) {
+          items.push({ title, description: description || '' });
+        }
+      });
+      if (heading || items.length > 0) {
+        result.push({ heading: heading || 'Included', items });
+      }
+    });
+    return result;
+  }
+
+  document.getElementById('packageForm').addEventListener('submit', function() {
+    document.getElementById('sections_json').value = JSON.stringify(serializeSections());
+  });
+
+  function editPackage(pkg) {
+    document.getElementById('builderTitle').textContent = 'Edit Package: ' + pkg.name;
+    document.getElementById('resetBuilderBtn').style.display = 'inline-block';
+    document.getElementById('packageForm').action = '/admin/packages/update/' + pkg.id;
+    document.getElementById('submitPackageBtn').textContent = 'Update Package';
+
+    document.getElementById('pkg_category_id').value = pkg.category_id;
+    document.getElementById('pkg_name').value = pkg.name || '';
+    document.getElementById('pkg_tagline').value = pkg.tagline || '';
+    document.getElementById('pkg_mrp').value = pkg.mrp || '';
+    document.getElementById('pkg_offer_price').value = pkg.offer_price || '';
+    document.getElementById('pkg_badge').value = pkg.badge || '';
+    document.getElementById('pkg_order_index').value = pkg.order_index || 0;
+    document.getElementById('pkg_is_featured').checked = !!pkg.is_featured;
+    document.getElementById('pkg_is_active').checked = pkg.is_active !== false;
+
+    container.innerHTML = '';
+    const secs = Array.isArray(pkg.sections) ? pkg.sections : [];
+    if (secs.length === 0) {
+      addSectionBlock('Deliverables');
+    } else {
+      secs.forEach(s => addSectionBlock(s.heading || '', s.items || []));
+    }
+
+    document.getElementById('packageBuilderCard').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function resetPackageForm() {
+    document.getElementById('builderTitle').textContent = '2. Add New Package';
+    document.getElementById('resetBuilderBtn').style.display = 'none';
+    document.getElementById('packageForm').action = '/admin/packages/create';
+    document.getElementById('submitPackageBtn').textContent = 'Save Package to Database';
+    document.getElementById('packageForm').reset();
+    container.innerHTML = '';
+    addSectionBlock('Deliverables');
+  }
+
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  // Initialize with 1 empty section on load
+  addSectionBlock('Deliverables');
+</script>
+
+<%- include('../partials/admin-mobile-nav') %>
+</body>
+</html>

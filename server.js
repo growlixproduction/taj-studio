@@ -16,6 +16,28 @@ app.set('views', path.join(__dirname, 'views'));
 // CORS setup
 app.use(cors());
 
+// Cloudflare R2 Media Streaming Route (with long-lived edge cache)
+const { getR2Object } = require('./utils/storage');
+app.get('/media/*', async (req, res, next) => {
+  const key = req.params[0];
+  if (!key) return next();
+  try {
+    const data = await getR2Object(key);
+    if (!data || !data.Body) return res.status(404).send('Media not found');
+    if (data.ContentType) res.setHeader('Content-Type', data.ContentType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    if (typeof data.Body.pipe === 'function') {
+      data.Body.pipe(res);
+    } else {
+      const chunks = [];
+      for await (const chunk of data.Body) chunks.push(chunk);
+      res.send(Buffer.concat(chunks));
+    }
+  } catch (err) {
+    res.status(404).send('Media not found');
+  }
+});
+
 // Fallback middleware for uploads to load from live site if missing locally
 const fs = require('fs');
 app.use('/uploads', (req, res, next) => {

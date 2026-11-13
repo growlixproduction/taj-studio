@@ -10,9 +10,156 @@
   </div>
 </header>
 
+<!-- =============================================================
+     SIGNATURE EVENT & WEDDING PACKAGES (DYNAMIC FROM SUPABASE)
+     ============================================================= -->
+<% if (typeof packageCategories !== 'undefined' && packageCategories.length > 0) { %>
+<section class="event-packages-section" id="event-packages">
+  <div class="container">
+    <div class="event-packages-header reveal">
+      <span class="eyebrow">Signature Event Collections</span>
+      <h2>Wedding, Engagement & Pre-Wedding Packages</h2>
+      <p>Curated multi-day storytelling collections tailored for your celebration. Click on any service point with an arrow to learn more about what's included.</p>
+    </div>
+
+    <!-- Category / Head Filter Pills -->
+    <div class="head-filter-bar reveal">
+      <button type="button" class="head-filter-pill active" data-head="all">All Collections</button>
+      <% packageCategories.forEach(cat => { if (cat.packages && cat.packages.length > 0) { %>
+        <button type="button" class="head-filter-pill" data-head="head-<%= cat.id %>"><%= cat.name %></button>
+      <% } }) %>
+    </div>
+
+    <%
+      let rawWaPkg = (settings && settings.contact_whatsapp) ? String(settings.contact_whatsapp).trim() : '';
+      let baseWaLink = 'https://wa.me/919753052417';
+      if (rawWaPkg) {
+        if (rawWaPkg.startsWith('http://') || rawWaPkg.startsWith('https://')) {
+          baseWaLink = rawWaPkg;
+        } else {
+          const digits = rawWaPkg.replace(/\D/g, '');
+          baseWaLink = digits.length === 10 ? ('https://wa.me/91' + digits) : ('https://wa.me/' + digits);
+        }
+      }
+    %>
+
+    <!-- Render Each Head & Its Packages -->
+    <% packageCategories.forEach(cat => { if (cat.packages && cat.packages.length > 0) { %>
+      <div class="event-head-block reveal" data-head-block="head-<%= cat.id %>">
+        <div class="event-head-title-wrap">
+          <h3 class="event-head-title"><%= cat.name %></h3>
+          <div class="event-head-divider"></div>
+          <% if (cat.subtitle) { %>
+            <p class="event-head-subtitle"><%= cat.subtitle %></p>
+          <% } %>
+        </div>
+
+        <div class="event-pkg-grid">
+          <% cat.packages.forEach(pkg => { %>
+            <div class="event-pkg-card <%= pkg.is_featured ? 'featured' : '' %>">
+              <% if (pkg.badge) { %>
+                <span class="event-pkg-badge"><%= pkg.badge %></span>
+              <% } %>
+
+              <h4 class="event-pkg-name"><%= pkg.name %></h4>
+              <% if (pkg.tagline) { %>
+                <p class="event-pkg-tagline"><%= pkg.tagline %></p>
+              <% } else { %>
+                <p class="event-pkg-tagline">&nbsp;</p>
+              <% } %>
+
+              <div class="event-pkg-price-box">
+                <span class="event-pkg-only-on">Only On</span>
+                <span class="event-pkg-offer">₹<%= pkg.offer_price %>/-</span>
+                <% if (pkg.mrp) { %>
+                  <span class="event-pkg-mrp">MRP ₹<%= pkg.mrp %>/-</span>
+                <% } %>
+              </div>
+
+              <!-- Point-Wise Headings (Compact Collapsible) & Optional Dropdown Descriptions -->
+              <div class="event-pkg-sections">
+                <% const secs = Array.isArray(pkg.sections) ? pkg.sections : []; %>
+                <% secs.forEach((sec, sIdx) => { 
+                     const pts = sec.items || [];
+                     const isDefaultOpen = (sIdx === 0); %>
+                  <div class="event-sec-group <%= isDefaultOpen ? 'sec-open' : '' %>">
+                    <% if (sec.heading) { %>
+                      <button type="button" class="event-sec-heading-btn" aria-expanded="<%= isDefaultOpen ? 'true' : 'false' %>">
+                        <span style="display:flex;align-items:center;gap:0.4rem;">
+                          <span>✦</span>
+                          <span><%= sec.heading %></span>
+                        </span>
+                        <span class="event-sec-count">(<%= pts.length %>)</span>
+                        <svg class="event-sec-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      </button>
+                    <% } %>
+                    <div class="event-sec-body">
+                      <div class="event-sec-body-inner">
+                        <ul class="event-sec-list">
+                          <% pts.forEach(pt => { 
+                               const hasDesc = pt.description && pt.description.trim().length > 0; %>
+                            <li class="pkg-point-item <%= hasDesc ? 'has-desc' : '' %>">
+                              <button type="button" class="pkg-point-trigger" <%= hasDesc ? 'aria-expanded="false"' : '' %>>
+                                <span class="pkg-point-left">
+                                  <span class="pkg-point-check">✓</span>
+                                  <span><%= pt.title %></span>
+                                </span>
+                                <% if (hasDesc) { %>
+                                  <svg class="pkg-point-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                <% } %>
+                              </button>
+                              <% if (hasDesc) { %>
+                                <div class="pkg-point-desc">
+                                  <div class="pkg-point-desc-inner"><%= pt.description %></div>
+                                </div>
+                              <% } %>
+                            </li>
+                          <% }) %>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="event-pkg-actions">
+                <a href="/contact?services=<%= encodeURIComponent(pkg.name) %>&estimate=<%= encodeURIComponent(String(pkg.offer_price).replace(/[^0-9]/g, '')) %>" class="event-pkg-book-btn">
+                  Book This Package
+                </a>
+                <a href="<%= baseWaLink %>?text=<%= encodeURIComponent('Hi Taj Studio! I am interested in the ' + pkg.name + ' (₹' + pkg.offer_price + '/-). Please share more details.') %>" target="_blank" rel="noopener noreferrer" class="event-pkg-wa-btn" title="Inquire on WhatsApp">
+                  WhatsApp
+                </a>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } }) %>
+
+    <!-- Terms & Conditions Box (from Quotation) -->
+    <div class="pricing-notes-box reveal" style="margin-top: 3rem; background: #fff; border: 1px solid rgba(197,160,89,0.28); border-radius: 16px; padding: 2rem;">
+      <h4 style="font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; margin-bottom: 1rem; color: #161412;">Terms & Conditions</h4>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem 2rem; font-size: 0.85rem; color: #5c564f; line-height: 1.6;">
+        <p>• <strong>Payment Schedule:</strong> 50% advance at booking, 35% within 5 days after the wedding, and remaining balance upon delivery of photos/videos & before album print.</p>
+        <p>• <strong>Data & Backup:</strong> Please provide a 500GB+ external hard disk for double-copy backup. Raw photos are provided after full payment.</p>
+        <p>• <strong>Delivery Timeline:</strong> Photos, Teasers & Highlights within 20 days; Full Traditional & Cinematic Films within 1 to 3 months.</p>
+        <p>• <strong>Travel & Stay:</strong> Traveling expenses are excluded. Accommodation (minimum 1 room at wedding venue) is to be provided by client for destination weddings.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<% } %>
+
+
 <!-- Pricing Section -->
 <section class="pricing-section" style="padding-bottom: 8rem;">
   <div class="container">
+    <div class="post-production-divider-header reveal">
+      <span class="eyebrow">A La Carte & Post-Production</span>
+      <h2>Album Designing, Editing & Add-On Services</h2>
+      <p>Select individual editing, album designing, or creative add-on services to build a custom estimate.</p>
+    </div>
     
     <!-- Tab Controls -->
     <div class="pricing-tabs-container reveal">
@@ -784,6 +931,7 @@
   </div>
 </section>
 
+
 <!-- Floating Estimate Summary Bar -->
 <div class="floating-estimate-bar" id="estimateBar">
   <div class="estimate-summary">
@@ -901,6 +1049,78 @@
 
     window.addEventListener('scroll', handleScroll);
     handleScroll();
+
+    // 4. Event Packages: Collapsible Section Headings & Interactive Dropdown Descriptions
+    document.querySelectorAll('.event-sec-heading-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const group = btn.closest('.event-sec-group');
+        const isOpen = group.classList.toggle('sec-open');
+        btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+    });
+
+    document.querySelectorAll('.pkg-point-item.has-desc .pkg-point-trigger').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.closest('.pkg-point-item');
+        const isOpen = item.classList.toggle('open');
+        btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+    });
+
+    // 5. Event Packages: Instant Head / Category Filter Pills + GSAP Animation
+    const headPills = document.querySelectorAll('.head-filter-pill');
+    const headBlocks = document.querySelectorAll('.event-head-block');
+
+    function animateVisiblePackageCards() {
+      if (typeof gsap === 'undefined') return;
+      const visibleCards = Array.from(document.querySelectorAll('.event-head-block'))
+        .filter(b => b.style.display !== 'none')
+        .flatMap(b => Array.from(b.querySelectorAll('.event-pkg-card')));
+      if (visibleCards.length > 0) {
+        gsap.fromTo(visibleCards,
+          { opacity: 0, y: 26, scale: 0.98 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.07, ease: 'power3.out', clearProps: 'transform' }
+        );
+      }
+    }
+
+    headPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        headPills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        const target = pill.getAttribute('data-head');
+        headBlocks.forEach(block => {
+          if (target === 'all' || block.getAttribute('data-head-block') === target) {
+            block.style.display = 'block';
+            block.classList.add('visible');
+          } else {
+            block.style.display = 'none';
+          }
+        });
+        animateVisiblePackageCards();
+      });
+    });
+
+    // 6. Initial Smooth GSAP Entrance
+    if (typeof gsap !== 'undefined') {
+      gsap.from('.landing-hero .hero-content > *', {
+        opacity: 0,
+        y: 20,
+        duration: 0.65,
+        stagger: 0.12,
+        ease: 'power3.out'
+      });
+      gsap.from('.head-filter-pill', {
+        opacity: 0,
+        y: 12,
+        duration: 0.45,
+        stagger: 0.05,
+        delay: 0.15,
+        ease: 'power2.out',
+        clearProps: 'transform'
+      });
+      animateVisiblePackageCards();
+    }
   });
 </script>
 

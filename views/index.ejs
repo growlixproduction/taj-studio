@@ -421,6 +421,36 @@
   </div>
 </section>
 
+<!-- Section 6.5: Featured Brands & Collectives -->
+<% if (typeof featuredBrands !== 'undefined' && featuredBrands.length > 0) { %>
+<section class="featured-brands-section reveal" id="featured-brands">
+  <div class="container">
+    <div class="featured-brands-header">
+      <span class="eyebrow">Our Ecosystem</span>
+      <h2 class="section-headline">Our Featured Brands</h2>
+      <p>Explore our specialized creative houses across luxury wedding cinema, digital growth, and storytelling.</p>
+    </div>
+
+    <div class="featured-brands-grid">
+      <% featuredBrands.forEach(brand => { %>
+        <a href="<%= brand.website_url %>" target="_blank" rel="noopener noreferrer" class="featured-brand-card">
+          <div class="featured-brand-logo-wrap">
+            <img src="<%= brand.logo_url %>" alt="<%= brand.name %>" loading="lazy">
+          </div>
+          <div class="featured-brand-info">
+            <h3><%= brand.name %></h3>
+            <% if (brand.tagline) { %>
+              <p><%= brand.tagline %></p>
+            <% } %>
+            <span class="featured-brand-visit">Visit &rarr;</span>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<% } %>
+
 <!-- Section 7: CTA Banner -->
 <section class="cta-banner reveal">
   <div class="container">

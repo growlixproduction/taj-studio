@@ -1,0 +1,180 @@
+<%- include('../partials/head') %>
+
+<style>
+  .brand-admin-grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+  @media (max-width: 1024px) {
+    .brand-admin-grid { grid-template-columns: 1fr; }
+  }
+  .brand-admin-card {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .brand-preview-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .brand-preview-img {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    border-radius: 10px;
+    background: #111;
+    padding: 6px;
+    border: 1px solid rgba(197,160,89,0.3);
+  }
+  .btn-xs {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-gold { background: linear-gradient(135deg, #d4af37, #b68d40); color: #111; }
+  .btn-dark { background: #1a1a1a; color: #fff; }
+  .btn-danger-soft { background: #fee2e2; color: #b91c1c; }
+</style>
+
+<header class="admin-navbar">
+  <a href="/admin/dashboard" class="admin-logo" style="text-decoration: none; color: inherit;">TAJ STUDIO <span>ADMIN</span></a>
+  <div style="display: flex; gap: 0.75rem; align-items: center;">
+    <a href="/#featured-brands" target="_blank" class="btn-xs btn-dark" style="text-decoration: none;">Preview on Home</a>
+    <a href="/admin/dashboard" class="btn-xs" style="background: #eee; color: #111; text-decoration: none;">Dashboard</a>
+    <form action="/auth/logout" method="POST" style="margin: 0;">
+      <button type="submit" class="admin-logout-btn">Logout</button>
+    </form>
+  </div>
+</header>
+
+<main class="admin-main">
+  <div class="admin-header-row">
+    <div>
+      <h1 class="admin-title">Featured Brands & Collectives</h1>
+      <p style="color: var(--text-muted); font-size: 0.85rem;">Manage your sister brands (CINEVO, GROWLIX, Stories By Wedding, etc.). Upload logos directly to Cloudflare R2 or paste any image URL.</p>
+    </div>
+  </div>
+
+  <% if (success && success.length > 0) { %>
+    <div style="background: #dcfce7; color: #166534; padding: 0.85rem 1.2rem; border-radius: 8px; margin-bottom: 1.25rem; font-weight: 500;">
+      <%= success[0] %>
+    </div>
+  <% } %>
+  <% if (error && error.length > 0) { %>
+    <div style="background: #fee2e2; color: #991b1b; padding: 0.85rem 1.2rem; border-radius: 8px; margin-bottom: 1.25rem; font-weight: 500;">
+      <%= error[0] %>
+    </div>
+  <% } %>
+
+  <div class="brand-admin-grid">
+    <!-- ADD NEW BRAND -->
+    <div class="admin-card">
+      <h3 style="margin-bottom: 1rem;">+ Add New Brand</h3>
+      <form action="/admin/brands/create" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+          <label>Brand Name *</label>
+          <input type="text" name="name" class="form-control" required placeholder="e.g. CINEVO">
+        </div>
+        <div class="form-group">
+          <label>Short Tagline (Optional)</label>
+          <input type="text" name="tagline" class="form-control" placeholder="e.g. Luxury Cinema & Production">
+        </div>
+        <div class="form-group">
+          <label>Website or Instagram Link *</label>
+          <input type="url" name="website_url" class="form-control" required placeholder="https://cinevo.in/">
+        </div>
+        <div class="form-group">
+          <label>Upload Logo Image (to Cloudflare R2)</label>
+          <input type="file" name="logo_file" class="form-control" accept="image/jpeg,image/png,image/webp">
+        </div>
+        <div class="form-group">
+          <label>OR Logo Image URL</label>
+          <input type="text" name="logo_url" class="form-control" placeholder="https://... or /media/brands/...">
+        </div>
+        <div class="form-group">
+          <label>Display Order</label>
+          <input type="number" name="order_index" class="form-control" value="<%= brands.length + 1 %>">
+        </div>
+        <button type="submit" class="btn-xs btn-dark" style="width: 100%; padding: 0.75rem;">Save Featured Brand</button>
+      </form>
+    </div>
+
+    <!-- EXISTING BRANDS -->
+    <div class="admin-card">
+      <h3 style="margin-bottom: 1rem;">Existing Featured Brands (<%= brands.length %>)</h3>
+      <% if (brands.length === 0) { %>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">No brands found in database yet. Run <code>db/brands_schema.sql</code> in Supabase SQL Editor or add a brand on the left.</p>
+      <% } %>
+      <% brands.forEach(brand => { %>
+        <div class="brand-admin-card">
+          <form action="/admin/brands/update/<%= brand.id %>" method="POST" enctype="multipart/form-data">
+            <div class="brand-preview-row">
+              <img src="<%= brand.logo_url %>" alt="<%= brand.name %>" class="brand-preview-img">
+              <div style="flex: 1;">
+                <strong style="font-size: 1.05rem;"><%= brand.name %></strong>
+                <div style="font-size: 0.8rem; color: var(--text-muted); word-break: break-all;">
+                  <a href="<%= brand.website_url %>" target="_blank" style="color: #8c6a2b;"><%= brand.website_url %></a>
+                </div>
+              </div>
+              <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <input type="checkbox" name="is_active" <%= brand.is_active ? 'checked' : '' %>> Active
+              </label>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.65rem;">
+              <div>
+                <label style="font-size: 0.75rem;">Brand Name</label>
+                <input type="text" name="name" class="form-control" value="<%= brand.name %>" required>
+              </div>
+              <div>
+                <label style="font-size: 0.75rem;">Tagline</label>
+                <input type="text" name="tagline" class="form-control" value="<%= brand.tagline || '' %>">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1.5fr 0.6fr; gap: 0.75rem; margin-bottom: 0.65rem;">
+              <div>
+                <label style="font-size: 0.75rem;">Website / Instagram URL</label>
+                <input type="url" name="website_url" class="form-control" value="<%= brand.website_url %>" required>
+              </div>
+              <div>
+                <label style="font-size: 0.75rem;">Order</label>
+                <input type="number" name="order_index" class="form-control" value="<%= brand.order_index || 0 %>">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem;">
+              <div>
+                <label style="font-size: 0.75rem;">Logo URL</label>
+                <input type="text" name="logo_url" class="form-control" value="<%= brand.logo_url %>">
+              </div>
+              <div>
+                <label style="font-size: 0.75rem;">Replace Logo (Upload)</label>
+                <input type="file" name="logo_file" class="form-control" accept="image/jpeg,image/png,image/webp">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem;">
+              <button type="submit" class="btn-xs btn-gold">Save Changes</button>
+              <button type="button" class="btn-xs btn-danger-soft" onclick="if(confirm('Delete <%= brand.name %>?')) document.getElementById('del-brand-<%= brand.id %>').submit();">Delete</button>
+            </div>
+          </form>
+          <form id="del-brand-<%= brand.id %>" action="/admin/brands/delete/<%= brand.id %>" method="POST" style="display:none;"></form>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/admin-mobile-nav') %>
+</body>
+</html>

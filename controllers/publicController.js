@@ -1,17 +1,40 @@
 const db = require('../config/db');
 
+const DEFAULT_BRANDS = [
+  { id: 1, name: 'CINEVO', tagline: 'Luxury Cinema & Production', logo_url: '/media/brands/cinevo-logo.jpg', website_url: 'https://cinevo.in/' },
+  { id: 2, name: 'GROWLIX', tagline: 'Digital Growth & Production', logo_url: '/media/brands/growlix-logo.jpg', website_url: 'https://growlix.info/' },
+  { id: 3, name: 'Stories By Wedding', tagline: 'Wedding Stories on Instagram', logo_url: '/media/brands/stories-by-wedding-logo.jpg', website_url: 'https://www.instagram.com/storiesbywedding/' }
+];
+
 exports.home = async (req, res, next) => {
   try {
     const [featuredVideos] = await db.query('SELECT * FROM videos ORDER BY created_at DESC LIMIT 3');
     const [featuredPhotos] = await db.query('SELECT * FROM photos ORDER BY created_at DESC LIMIT 3');
     const [heroSlides] = await db.query('SELECT * FROM hero_slides ORDER BY order_index ASC');
     const [ugcItems] = await db.query('SELECT * FROM ugc_items ORDER BY order_index ASC');
+
+    let featuredBrands = DEFAULT_BRANDS;
+    try {
+      const { data: brandRows, error: brandErr } = await db.supabase
+        .from('featured_brands')
+        .select('*')
+        .eq('is_active', true)
+        .order('order_index', { ascending: true })
+        .order('id', { ascending: true });
+      if (!brandErr && brandRows && brandRows.length > 0) {
+        featuredBrands = brandRows;
+      }
+    } catch (e) {
+      // Fallback to default brands
+    }
+
     res.render('index', { 
       title: 'Taj Studio — Where Every Frame Tells a Story', 
       featuredVideos, 
       featuredPhotos,
       heroSlides,
-      ugcItems
+      ugcItems,
+      featuredBrands
     });
   } catch (err) {
     console.error('Home Page Error:', err);
@@ -20,7 +43,8 @@ exports.home = async (req, res, next) => {
       featuredVideos: [], 
       featuredPhotos: [],
       heroSlides: [],
-      ugcItems: []
+      ugcItems: [],
+      featuredBrands: DEFAULT_BRANDS
     });
   }
 };
@@ -135,6 +159,37 @@ exports.contactSubmit = async (req, res, next) => {
   }
 };
 
-exports.pricingPage = (req, res) => {
-  res.render('pricing', { title: 'Pricing & Packages — Taj Studio' });
+exports.pricingPage = async (req, res) => {
+  try {
+    const { supabase } = db;
+    const { data: categories } = await supabase
+      .from('package_categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('order_index', { ascending: true })
+      .order('id', { ascending: true });
+
+    const { data: packages } = await supabase
+      .from('packages')
+      .select('*')
+      .eq('is_active', true)
+      .order('order_index', { ascending: true })
+      .order('id', { ascending: true });
+
+    const groupedCategories = (categories || []).map(cat => ({
+      ...cat,
+      packages: (packages || []).filter(pkg => pkg.category_id === cat.id)
+    }));
+
+    res.render('pricing', {
+      title: 'Pricing & Packages — Taj Studio',
+      packageCategories: groupedCategories
+    });
+  } catch (err) {
+    console.error('Pricing Page Error:', err);
+    res.render('pricing', {
+      title: 'Pricing & Packages — Taj Studio',
+      packageCategories: []
+    });
+  }
 };

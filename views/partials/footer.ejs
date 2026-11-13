@@ -59,6 +59,31 @@
   </div>
 </div>
 
+<!-- MOBILE-OPTIMIZED BOTTOM-LEFT FLOATING WHATSAPP BUTTON -->
+<%
+  let rawWa = (settings && settings.contact_whatsapp) ? String(settings.contact_whatsapp).trim() : '';
+  let waUrl = 'https://wa.me/919753052417';
+  if (rawWa) {
+    if (rawWa.startsWith('http://') || rawWa.startsWith('https://')) {
+      waUrl = rawWa;
+    } else {
+      const digits = rawWa.replace(/\D/g, '');
+      if (digits.length === 10) {
+        waUrl = 'https://wa.me/91' + digits;
+      } else if (digits.length > 0) {
+        waUrl = 'https://wa.me/' + digits;
+      }
+    }
+  }
+%>
+<a href="<%= waUrl %>" target="_blank" rel="noopener noreferrer" class="whatsapp-float" aria-label="Chat on WhatsApp">
+  <span class="whatsapp-float-pulse"></span>
+  <svg viewBox="0 0 32 32" width="26" height="26" fill="currentColor" aria-hidden="true">
+    <path d="M16.004 2.667C8.64 2.667 2.667 8.64 2.667 16c0 2.347.613 4.64 1.773 6.667L2.667 29.333l6.84-1.747A13.27 13.27 0 0016.004 29.333C23.36 29.333 29.333 23.36 29.333 16S23.36 2.667 16.004 2.667zm7.76 18.88c-.32.907-1.88 1.733-2.613 1.84-.693.107-1.573.147-2.533-.16-.587-.187-1.333-.44-2.293-.853-4.027-1.733-6.653-5.8-6.853-6.067-.2-.267-1.64-2.187-1.64-4.173s1.04-2.96 1.413-3.36c.373-.4.8-.507 1.067-.507.267 0 .533.013.76.013.24 0 .56-.093.88.667.32.773 1.093 2.667 1.187 2.867.093.2.16.44.027.707-.133.267-.2.44-.4.667-.2.227-.413.507-.587.68-.2.2-.4.413-.173.813.227.4 1.013 1.667 2.173 2.707 1.493 1.333 2.76 1.747 3.16 1.947.4.2.627.16.853-.093.227-.267.973-1.133 1.24-1.52.267-.387.52-.32.88-.187.36.133 2.28 1.08 2.667 1.267.4.2.653.293.747.453.093.16.093.933-.227 1.84z"/>
+  </svg>
+  <span class="whatsapp-float-label">WhatsApp</span>
+</a>
+
 <!-- Link Global Client Scripts -->
 <script src="/js/main.js"></script>
 </body>

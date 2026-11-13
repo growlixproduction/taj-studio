@@ -1,10 +1,28 @@
 const path = require('path');
 const fs = require('fs');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { supabase } = require('../config/db');
+require('dotenv').config();
+
+const r2Bucket = process.env.R2_BUCKET || 'tajstudio';
+const r2Endpoint = process.env.R2_ENDPOINT;
+const r2AccessKey = process.env.R2_ACCESS_KEY_ID;
+const r2SecretKey = process.env.R2_SECRET_ACCESS_KEY;
+const r2PublicUrl = (process.env.R2_PUBLIC_URL || '').replace(/\/$/, '');
+
+const r2Client = (r2Endpoint && r2AccessKey && r2SecretKey)
+  ? new S3Client({
+      region: 'auto',
+      endpoint: r2Endpoint,
+      credentials: {
+        accessKeyId: r2AccessKey,
+        secretAccessKey: r2SecretKey
+      }
+    })
+  : null;
 
 /**
- * Upload a file buffer or stream to Supabase Storage bucket 'uploads'
- * Falls back to local disk if running locally and storage is unreachable
+ * Upload a file buffer to Cloudflare R2 (primary), falling back to Supabase Storage or local disk.
  */
 async function uploadFile(file, folder = 'photos') {
   if (!file) return null;
@@ -13,8 +31,27 @@ async function uploadFile(file, folder = 'photos') {
   const cleanBaseName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}${ext}`;
   const storagePath = `${folder}/${cleanBaseName}`;
 
-  // 1. If buffer exists (from memoryStorage)
   if (file.buffer) {
+    // 1. Primary: Cloudflare R2 Object Storage
+    if (r2Client) {
+      try {
+        await r2Client.send(new PutObjectCommand({
+          Bucket: r2Bucket,
+          Key: storagePath,
+          Body: file.buffer,
+          ContentType: file.mimetype || 'application/octet-stream'
+        }));
+
+        if (r2PublicUrl) {
+          return `${r2PublicUrl}/${storagePath}`;
+        }
+        return `/media/${storagePath}`;
+      } catch (r2Err) {
+        console.warn('Cloudflare R2 upload error:', r2Err.message);
+      }
+    }
+
+    // 2. Fallback: Supabase Storage
     try {
       const { data, error } = await supabase.storage
         .from('uploads')
@@ -27,12 +64,11 @@ async function uploadFile(file, folder = 'photos') {
         const { data: pubData } = supabase.storage.from('uploads').getPublicUrl(storagePath);
         return pubData.publicUrl;
       }
-      console.warn('Supabase storage upload error:', error);
     } catch (e) {
       console.warn('Supabase upload exception:', e.message);
     }
 
-    // Local disk fallback
+    // 3. Fallback: Local disk (dev only)
     try {
       const localDir = path.join(__dirname, '../public/uploads', folder);
       if (!fs.existsSync(localDir)) {
@@ -41,11 +77,10 @@ async function uploadFile(file, folder = 'photos') {
       fs.writeFileSync(path.join(localDir, cleanBaseName), file.buffer);
       return `/uploads/${folder}/${cleanBaseName}`;
     } catch (diskErr) {
-      console.warn('Local disk write error (read-only environment on Vercel):', diskErr.message);
+      console.warn('Local disk write error:', diskErr.message);
     }
   }
 
-  // 2. If diskStorage was used and file was written to disk
   if (file.filename) {
     return `/uploads/${folder}/${file.filename}`;
   }
@@ -54,12 +89,45 @@ async function uploadFile(file, folder = 'photos') {
 }
 
 /**
- * Delete a file either from Supabase Storage or local disk
+ * Fetch an object from Cloudflare R2 for /media/* route
+ */
+async function getR2Object(key) {
+  if (!r2Client) return null;
+  return await r2Client.send(new GetObjectCommand({
+    Bucket: r2Bucket,
+    Key: key
+  }));
+}
+
+/**
+ * Delete a file from Cloudflare R2, Supabase Storage, or local disk
  */
 async function deleteFile(filePath) {
   if (!filePath) return;
 
-  // If Supabase Storage public URL
+  // 1. R2 via /media/ prefix
+  if (filePath.startsWith('/media/') && r2Client) {
+    const key = filePath.replace(/^\/media\//, '');
+    try {
+      await r2Client.send(new DeleteObjectCommand({ Bucket: r2Bucket, Key: key }));
+    } catch (err) {
+      console.warn('Failed to delete from R2:', err.message);
+    }
+    return;
+  }
+
+  // 2. R2 via R2_PUBLIC_URL
+  if (r2PublicUrl && filePath.startsWith(r2PublicUrl) && r2Client) {
+    const key = filePath.replace(r2PublicUrl + '/', '');
+    try {
+      await r2Client.send(new DeleteObjectCommand({ Bucket: r2Bucket, Key: key }));
+    } catch (err) {
+      console.warn('Failed to delete from R2 public URL:', err.message);
+    }
+    return;
+  }
+
+  // 3. Supabase Storage public URL
   if (filePath.includes('/storage/v1/object/public/uploads/')) {
     const parts = filePath.split('/storage/v1/object/public/uploads/');
     if (parts[1]) {
@@ -72,7 +140,7 @@ async function deleteFile(filePath) {
     return;
   }
 
-  // If local /uploads path
+  // 4. Local /uploads path
   if (filePath.startsWith('/uploads/')) {
     try {
       const fullPath = path.join(__dirname, '../public', filePath);
@@ -87,5 +155,6 @@ async function deleteFile(filePath) {
 
 module.exports = {
   uploadFile,
-  deleteFile
+  deleteFile,
+  getR2Object
 };

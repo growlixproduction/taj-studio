@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/adminController');
+const pkgCtrl = require('../controllers/packageController');
+const brandCtrl = require('../controllers/brandController');
 const auth = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 
@@ -53,5 +55,20 @@ router.put('/reorder-photos', ctrl.reorderPhotos);
 router.put('/reorder-videos', ctrl.reorderVideos);
 router.put('/reorder-hero-slides', ctrl.reorderHeroSlides);
 router.put('/reorder-ugc-items', ctrl.reorderUgcItems);
+
+// Custom Packages & Heads Manager Routes
+router.get('/packages', pkgCtrl.adminPackagesPage);
+router.post('/packages/category/create', pkgCtrl.createCategory);
+router.post('/packages/category/update/:id', pkgCtrl.updateCategory);
+router.post('/packages/category/delete/:id', pkgCtrl.deleteCategory);
+router.post('/packages/create', pkgCtrl.createPackage);
+router.post('/packages/update/:id', pkgCtrl.updatePackage);
+router.post('/packages/delete/:id', pkgCtrl.deletePackage);
+
+// Featured Brands Manager Routes
+router.get('/brands', brandCtrl.brandsPage);
+router.post('/brands/create', upload.single('logo_file'), brandCtrl.createBrand);
+router.post('/brands/update/:id', upload.single('logo_file'), brandCtrl.updateBrand);
+router.post('/brands/delete/:id', brandCtrl.deleteBrand);
 
 module.exports = router;
