@@ -76,6 +76,7 @@ router.post('/brands/delete/:id', brandCtrl.deleteBrand);
 router.get('/invoices', invoiceCtrl.adminInvoicesPage);
 router.post('/invoices/create', invoiceCtrl.createInvoice);
 router.post('/invoices/update/:id', invoiceCtrl.updateInvoice);
+router.post('/invoices/email/:id', invoiceCtrl.emailInvoice);
 router.post('/invoices/delete/:id', invoiceCtrl.deleteInvoice);
 
 module.exports = router;

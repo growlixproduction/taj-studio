@@ -143,6 +143,8 @@ exports.contactPage = (req, res) => {
   res.render('contact', { title: 'Contact — Taj Studio', navSolid: true });
 };
 
+const { sendAppointmentEmails } = require('../utils/mailer');
+
 exports.contactSubmit = async (req, res, next) => {
   const { name, email, phone, event_type, event_date, message } = req.body;
   try {
@@ -150,7 +152,12 @@ exports.contactSubmit = async (req, res, next) => {
       'INSERT INTO contacts (name, email, phone, event_type, event_date, message) VALUES (?,?,?,?,?,?)',
       [name, email, phone, event_type, event_date || null, message]
     );
-    req.flash('success', 'Message sent! We will get back to you soon.');
+    try {
+      await sendAppointmentEmails({ name, email, phone, event_type, event_date, message }, res.locals.settings || {});
+    } catch (mailErr) {
+      console.warn('Appointment email warning:', mailErr.message);
+    }
+    req.flash('success', 'Message sent! We have also sent a confirmation to your email.');
     res.redirect('/contact');
   } catch (err) {
     console.error('Contact Submission Error:', err);

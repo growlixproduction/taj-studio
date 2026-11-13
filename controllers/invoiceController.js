@@ -2,6 +2,7 @@ const { supabase } = require('../config/db');
 const QRCode = require('qrcode');
 const { uploadNamedBuffer, deleteFile, getR2Object } = require('../utils/storage');
 const { buildInvoicePdfBuffer } = require('../utils/pdfGenerator');
+const { sendInvoiceEmail } = require('../utils/mailer');
 
 const DEFAULT_TERMS = [
   '50% advance payment is required to block the event dates.',
@@ -111,12 +112,16 @@ exports.createInvoice = async (req, res) => {
       return res.redirect('/admin/invoices?error=' + encodeURIComponent(error.message || 'Could not save invoice'));
     }
 
-    // Generate lightweight vector PDF (~25-40 KB) and store on Cloudflare R2
+    // Generate lightweight vector PDF (~25-40 KB), store on R2, and email client if email provided
     try {
-      const pdfBuf = await buildInvoicePdfBuffer({ ...payload, created_at: new Date().toISOString() }, res.locals.settings || {});
+      const fullInv = { ...payload, created_at: new Date().toISOString() };
+      const pdfBuf = await buildInvoicePdfBuffer(fullInv, res.locals.settings || {});
       await uploadNamedBuffer(`invoices/${quoteNumber}.pdf`, pdfBuf, 'application/pdf');
+      if (payload.client_email) {
+        await sendInvoiceEmail(fullInv, pdfBuf, res.locals.settings || {});
+      }
     } catch (pdfErr) {
-      console.warn('PDF generation/R2 upload warning:', pdfErr.message);
+      console.warn('PDF generation/R2/Email warning:', pdfErr.message);
     }
 
     res.redirect(`/admin/invoices?created=${encodeURIComponent(quoteNumber)}`);
@@ -242,6 +247,25 @@ exports.downloadPdfFile = async (req, res) => {
   } catch (err) {
     console.error('downloadPdfFile error:', err);
     res.status(500).send('Unable to generate PDF');
+  }
+};
+
+exports.emailInvoice = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { data: invoice, error } = await supabase.from('invoices').select('*').eq('id', id).single();
+    if (error || !invoice) {
+      return res.redirect('/admin/invoices?error=' + encodeURIComponent('Invoice not found'));
+    }
+    if (!invoice.client_email || !invoice.client_email.includes('@')) {
+      return res.redirect('/admin/invoices?error=' + encodeURIComponent('No valid client email on this quote'));
+    }
+    const pdfBuf = await buildInvoicePdfBuffer(invoice, res.locals.settings || {});
+    await sendInvoiceEmail(invoice, pdfBuf, res.locals.settings || {});
+    res.redirect(`/admin/invoices?updated=${encodeURIComponent(invoice.quote_number)}`);
+  } catch (err) {
+    console.error('emailInvoice error:', err);
+    res.redirect('/admin/invoices?error=' + encodeURIComponent('Failed to send email'));
   }
 };
 

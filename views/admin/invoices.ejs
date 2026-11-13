@@ -397,6 +397,11 @@
                     <a href="/quote/<%= inv.quote_number %>/pdf" target="_blank" class="btn-gold" style="padding:0.38rem 0.7rem; font-size:0.8rem;">PDF File</a>
                     <a href="/quote/<%= inv.quote_number %>" target="_blank" class="btn-outline" style="padding:0.38rem 0.7rem; font-size:0.8rem;">Web / Print</a>
                     <a href="https://wa.me/<%= waPhone %>?text=<%= encodeURIComponent(waMsg) %>" target="_blank" class="btn-wa" style="padding:0.38rem 0.7rem; font-size:0.8rem;">WhatsApp</a>
+                    <% if (inv.client_email) { %>
+                      <form action="/admin/invoices/email/<%= inv.id %>" method="POST" style="margin:0;">
+                        <button type="submit" class="btn-outline" style="padding:0.38rem 0.7rem; font-size:0.8rem;">Email</button>
+                      </form>
+                    <% } %>
                     <a href="/admin/invoices?edit=<%= inv.id %>" class="btn-outline" style="padding:0.38rem 0.7rem; font-size:0.8rem;">Edit</a>
                     <form action="/admin/invoices/delete/<%= inv.id %>" method="POST" style="margin:0;" onsubmit="return confirm('Delete <%= inv.quote_number %>?');">
                       <button type="submit" class="btn-danger" style="padding:0.38rem 0.7rem; font-size:0.8rem;">Delete</button>
