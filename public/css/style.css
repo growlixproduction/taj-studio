@@ -4564,34 +4564,8 @@ textarea.form-control {
 
 
 /* =============================================================
-   BRAND LOGO IMAGE (NAVBAR & FOOTER)
+   BRAND LOGO IMAGE (FOOTER)
    ============================================================= */
-.nav-logo {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-  transition: background 0.3s ease, padding 0.3s ease, transform 0.25s ease;
-}
-.nav-logo-img {
-  height: 44px;
-  width: auto;
-  display: block;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
-  transition: height 0.3s ease;
-}
-.navbar.scrolled .nav-logo,
-.navbar.navbar-solid .nav-logo {
-  background: #141210;
-  padding: 5px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(197, 160, 89, 0.35);
-}
-.navbar.scrolled .nav-logo-img,
-.navbar.navbar-solid .nav-logo-img {
-  height: 36px;
-  filter: none;
-}
 .footer-logo {
   display: inline-block;
   margin-bottom: 1rem;
@@ -4601,9 +4575,4 @@ textarea.form-control {
   width: auto;
   display: block;
   object-fit: contain;
-}
-@media (max-width: 640px) {
-  .nav-logo-img { height: 36px; }
-  .navbar.scrolled .nav-logo-img,
-  .navbar.navbar-solid .nav-logo-img { height: 30px; }
 }

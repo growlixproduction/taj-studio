@@ -1,5 +1,5 @@
 const express = require('express');
-const session = require('express-session');
+const cookieSession = require('cookie-session');
 const flash = require('connect-flash');
 const methodOverride = require('method-override');
 const cors = require('cors');
@@ -63,15 +63,17 @@ app.use(express.json());
 // Method override for HTTP verbs like PUT/DELETE from forms
 app.use(methodOverride('_method'));
 
-// Session setup
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'taj_studio_super_secret_session_key_9988',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    httpOnly: true
-  }
+// Trust Vercel/reverse proxy for secure cookies
+app.set('trust proxy', 1);
+
+// Persistent Cookie Session (survives Vercel serverless cold starts for 30 days)
+app.use(cookieSession({
+  name: 'taj_admin_session',
+  keys: [process.env.SESSION_SECRET || 'taj_studio_super_secret_session_key_9988'],
+  maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production'
 }));
 
 // Flash messages

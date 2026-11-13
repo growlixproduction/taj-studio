@@ -31,7 +31,7 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-  req.session.destroy();
+  req.session = null;
   res.redirect('/auth/login');
 });
 
