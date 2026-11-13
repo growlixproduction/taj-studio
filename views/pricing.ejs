@@ -1101,24 +1101,16 @@
       });
     });
 
-    // 6. Initial Smooth GSAP Entrance
+    // 6. Initial Smooth GSAP Entrance (opacity always 1 so pills/headers never get stuck invisible)
     if (typeof gsap !== 'undefined') {
-      gsap.from('.landing-hero .hero-content > *', {
-        opacity: 0,
-        y: 20,
-        duration: 0.65,
-        stagger: 0.12,
-        ease: 'power3.out'
-      });
-      gsap.from('.head-filter-pill', {
-        opacity: 0,
-        y: 12,
-        duration: 0.45,
-        stagger: 0.05,
-        delay: 0.15,
-        ease: 'power2.out',
-        clearProps: 'transform'
-      });
+      gsap.fromTo('.landing-hero .hero-content > *',
+        { y: 14, opacity: 0.9 },
+        { y: 0, opacity: 1, duration: 0.45, stagger: 0.08, ease: 'power3.out', clearProps: 'all' }
+      );
+      gsap.fromTo('.head-filter-pill',
+        { y: 8, opacity: 1 },
+        { y: 0, opacity: 1, duration: 0.35, stagger: 0.04, ease: 'power2.out', clearProps: 'all' }
+      );
       animateVisiblePackageCards();
     }
   });
