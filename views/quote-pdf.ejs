@@ -465,7 +465,8 @@
       <strong>Taj Studio</strong> — <%= invoice.doc_type %> <code><%= invoice.quote_number %></code> (A4 Print-Ready 2-Page Layout)
     </div>
     <div class="toolbar-actions">
-      <button type="button" class="tb-btn tb-gold" onclick="window.print()">Download / Save as PDF</button>
+      <a href="/quote/<%= invoice.quote_number %>/pdf" target="_blank" class="tb-btn tb-gold">Download PDF File</a>
+      <button type="button" class="tb-btn" style="background:#2a2622; color:#f8f5ef; border:1px solid #c89d4c;" onclick="window.print()">Print A4</button>
       <% if (waPhone) { %>
         <a href="https://wa.me/<%= waPhone %>?text=<%= encodeURIComponent(waMsg) %>" target="_blank" class="tb-btn tb-wa">Send on WhatsApp</a>
       <% } %>

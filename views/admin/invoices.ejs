@@ -191,12 +191,14 @@
         Reference: <code><%= qCode %></code>
       </div>
       <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
-        <a href="/quote/<%= qCode %>" target="_blank" class="btn-gold" style="padding:0.5rem 1rem; font-size:0.86rem;">View / Download PDF</a>
+        <a href="/quote/<%= qCode %>" target="_blank" class="btn-outline" style="padding:0.5rem 1rem; font-size:0.86rem;">Web Preview / Print</a>
+        <a href="/quote/<%= qCode %>/pdf" target="_blank" class="btn-gold" style="padding:0.5rem 1rem; font-size:0.86rem;">Download PDF File</a>
         <% if (savedInv) {
           const digits = (savedInv.client_phone || '').replace(/[^0-9]/g, '');
           const waPhone = digits.length === 10 ? '91' + digits : digits;
           const quoteUrl = 'https://tajstudio.info/quote/' + qCode;
-          const waMsg = `Namaste ${savedInv.client_name} ji,\n\nThank you for connecting with *Taj Studio*! Here is your customized *${savedInv.doc_type}* (${qCode}) for *${savedInv.event_type}*:\n\nPackage: ${savedInv.package_title}\nFinal Amount: ₹${Number(savedInv.final_amount || 0).toLocaleString('en-IN')}/-\n\nView & Download Branded PDF:\n${quoteUrl}\n\nWarm regards,\nTaj Studio`;
+          const pdfUrl = 'https://tajstudio.info/quote/' + qCode + '/pdf';
+          const waMsg = `Namaste ${savedInv.client_name} ji,\n\nThank you for connecting with *Taj Studio*! Here is your customized *${savedInv.doc_type}* (${qCode}) for *${savedInv.event_type}*:\n\nPackage: ${savedInv.package_title}\nFinal Amount: ₹${Number(savedInv.final_amount || 0).toLocaleString('en-IN')}/-\n\nDirect PDF Download:\n${pdfUrl}\n\nInteractive View:\n${quoteUrl}\n\nWarm regards,\nTaj Studio`;
         %>
           <a href="https://wa.me/<%= waPhone %>?text=<%= encodeURIComponent(waMsg) %>" target="_blank" class="btn-wa">Send on WhatsApp</a>
         <% } %>
@@ -255,9 +257,13 @@
             <% }) %>
           </select>
         </div>
-        <div class="inv-field">
-          <label>Event Dates</label>
-          <input type="text" name="event_dates" placeholder="e.g. 12–14 Dec 2026" value="<%= editingInvoice ? (editingInvoice.event_dates || '') : '' %>">
+        <div class="inv-field" style="grid-column: span 2;">
+          <label>Event Dates (Select from Calendar or Edit)</label>
+          <div style="display:grid; grid-template-columns: 1fr 1fr 1.2fr; gap:0.55rem;">
+            <input type="date" id="startDatePicker" title="Start Date">
+            <input type="date" id="endDatePicker" title="End Date (Optional)">
+            <input type="text" name="event_dates" id="eventDatesInput" placeholder="e.g. 12–14 Dec 2026" value="<%= editingInvoice ? (editingInvoice.event_dates || '') : '' %>">
+          </div>
         </div>
         <div class="inv-field">
           <label>Venue / City</label>
@@ -388,7 +394,8 @@
                 <td>₹<%= balAmt.toLocaleString('en-IN') %></td>
                 <td>
                   <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
-                    <a href="/quote/<%= inv.quote_number %>" target="_blank" class="btn-outline" style="padding:0.38rem 0.7rem; font-size:0.8rem;">View PDF</a>
+                    <a href="/quote/<%= inv.quote_number %>/pdf" target="_blank" class="btn-gold" style="padding:0.38rem 0.7rem; font-size:0.8rem;">PDF File</a>
+                    <a href="/quote/<%= inv.quote_number %>" target="_blank" class="btn-outline" style="padding:0.38rem 0.7rem; font-size:0.8rem;">Web / Print</a>
                     <a href="https://wa.me/<%= waPhone %>?text=<%= encodeURIComponent(waMsg) %>" target="_blank" class="btn-wa" style="padding:0.38rem 0.7rem; font-size:0.8rem;">WhatsApp</a>
                     <a href="/admin/invoices?edit=<%= inv.id %>" class="btn-outline" style="padding:0.38rem 0.7rem; font-size:0.8rem;">Edit</a>
                     <form action="/admin/invoices/delete/<%= inv.id %>" method="POST" style="margin:0;" onsubmit="return confirm('Delete <%= inv.quote_number %>?');">
@@ -660,6 +667,46 @@
   renderDays();
   renderDeliverables();
   updateTotalsDisplay();
+
+  // Calendar Start/End Date Picker Sync
+  const startDateEl = document.getElementById('startDatePicker');
+  const endDateEl = document.getElementById('endDatePicker');
+  const eventDatesEl = document.getElementById('eventDatesInput');
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function syncCalendarDates() {
+    if (!startDateEl.value) return;
+    const s = new Date(startDateEl.value + 'T00:00:00');
+    const sDay = s.getDate();
+    const sMon = MONTHS[s.getMonth()];
+    const sYr = s.getFullYear();
+
+    if (!endDateEl.value || endDateEl.value <= startDateEl.value) {
+      eventDatesEl.value = `${sDay} ${sMon} ${sYr}`;
+      return;
+    }
+    const e = new Date(endDateEl.value + 'T00:00:00');
+    const eDay = e.getDate();
+    const eMon = MONTHS[e.getMonth()];
+    const eYr = e.getFullYear();
+
+    if (sYr === eYr && sMon === eMon) {
+      eventDatesEl.value = `${sDay}–${eDay} ${sMon} ${sYr}`;
+    } else if (sYr === eYr) {
+      eventDatesEl.value = `${sDay} ${sMon} – ${eDay} ${eMon} ${sYr}`;
+    } else {
+      eventDatesEl.value = `${sDay} ${sMon} ${sYr} – ${eDay} ${eMon} ${eYr}`;
+    }
+  }
+
+  if (startDateEl && endDateEl) {
+    startDateEl.addEventListener('change', () => {
+      if (endDateEl.value && endDateEl.value < startDateEl.value) endDateEl.value = startDateEl.value;
+      endDateEl.min = startDateEl.value;
+      syncCalendarDates();
+    });
+    endDateEl.addEventListener('change', syncCalendarDates);
+  }
 </script>
 
 </body>

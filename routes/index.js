@@ -12,5 +12,6 @@ router.get('/pricing', ctrl.pricingPage);
 router.get('/contact', ctrl.contactPage);
 router.post('/contact', ctrl.contactSubmit);
 router.get('/quote/:quoteNumber', invoiceCtrl.viewPublicQuote);
+router.get('/quote/:quoteNumber/pdf', invoiceCtrl.downloadPdfFile);
 
 module.exports = router;

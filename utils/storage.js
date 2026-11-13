@@ -153,8 +153,40 @@ async function deleteFile(filePath) {
   }
 }
 
+/**
+ * Upload a buffer to an exact key on Cloudflare R2 (e.g. 'invoices/TS-202611-1234.pdf')
+ */
+async function uploadNamedBuffer(storagePath, buffer, contentType = 'application/pdf') {
+  if (!storagePath || !buffer) return null;
+
+  if (r2Client) {
+    try {
+      await r2Client.send(new PutObjectCommand({
+        Bucket: r2Bucket,
+        Key: storagePath,
+        Body: buffer,
+        ContentType: contentType
+      }));
+      return `/media/${storagePath}`;
+    } catch (r2Err) {
+      console.warn('Cloudflare R2 named upload error:', r2Err.message);
+    }
+  }
+
+  try {
+    const localFile = path.join(__dirname, '../public/uploads', storagePath);
+    fs.mkdirSync(path.dirname(localFile), { recursive: true });
+    fs.writeFileSync(localFile, buffer);
+    return `/uploads/${storagePath}`;
+  } catch (diskErr) {
+    console.warn('Local named write error:', diskErr.message);
+  }
+  return null;
+}
+
 module.exports = {
   uploadFile,
+  uploadNamedBuffer,
   deleteFile,
   getR2Object
 };

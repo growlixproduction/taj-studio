@@ -1,5 +1,7 @@
 const { supabase } = require('../config/db');
 const QRCode = require('qrcode');
+const { uploadNamedBuffer, deleteFile, getR2Object } = require('../utils/storage');
+const { buildInvoicePdfBuffer } = require('../utils/pdfGenerator');
 
 const DEFAULT_TERMS = [
   '50% advance payment is required to block the event dates.',
@@ -109,6 +111,14 @@ exports.createInvoice = async (req, res) => {
       return res.redirect('/admin/invoices?error=' + encodeURIComponent(error.message || 'Could not save invoice'));
     }
 
+    // Generate lightweight vector PDF (~25-40 KB) and store on Cloudflare R2
+    try {
+      const pdfBuf = await buildInvoicePdfBuffer({ ...payload, created_at: new Date().toISOString() }, res.locals.settings || {});
+      await uploadNamedBuffer(`invoices/${quoteNumber}.pdf`, pdfBuf, 'application/pdf');
+    } catch (pdfErr) {
+      console.warn('PDF generation/R2 upload warning:', pdfErr.message);
+    }
+
     res.redirect(`/admin/invoices?created=${encodeURIComponent(quoteNumber)}`);
   } catch (err) {
     console.error('createInvoice error:', err);
@@ -150,7 +160,7 @@ exports.updateInvoice = async (req, res) => {
       .from('invoices')
       .update(payload)
       .eq('id', id)
-      .select('quote_number')
+      .select('*')
       .single();
 
     if (error) {
@@ -159,6 +169,15 @@ exports.updateInvoice = async (req, res) => {
     }
 
     const qn = (data && data.quote_number) || '';
+    if (qn) {
+      try {
+        const pdfBuf = await buildInvoicePdfBuffer(data, res.locals.settings || {});
+        await uploadNamedBuffer(`invoices/${qn}.pdf`, pdfBuf, 'application/pdf');
+      } catch (pdfErr) {
+        console.warn('PDF update/R2 upload warning:', pdfErr.message);
+      }
+    }
+
     res.redirect(`/admin/invoices?updated=${encodeURIComponent(qn)}`);
   } catch (err) {
     console.error('updateInvoice error:', err);
@@ -169,15 +188,60 @@ exports.updateInvoice = async (req, res) => {
 exports.deleteInvoice = async (req, res) => {
   try {
     const id = Number(req.params.id);
+    const { data: existing } = await supabase.from('invoices').select('quote_number').eq('id', id).single();
     const { error } = await supabase.from('invoices').delete().eq('id', id);
     if (error) {
       console.error('Delete invoice error:', error);
       return res.redirect('/admin/invoices?error=' + encodeURIComponent(error.message || 'Could not delete invoice'));
     }
+    if (existing && existing.quote_number) {
+      await deleteFile(`/media/invoices/${existing.quote_number}.pdf`);
+    }
     res.redirect('/admin/invoices');
   } catch (err) {
     console.error('deleteInvoice error:', err);
     res.redirect('/admin/invoices?error=' + encodeURIComponent('Server error while deleting invoice'));
+  }
+};
+
+exports.downloadPdfFile = async (req, res) => {
+  try {
+    const quoteNumber = (req.params.quoteNumber || '').trim();
+    const key = `invoices/${quoteNumber}.pdf`;
+
+    // 1. Serve cached lightweight PDF directly from Cloudflare R2 if available
+    try {
+      const r2Obj = await getR2Object(key);
+      if (r2Obj && r2Obj.Body) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${quoteNumber}.pdf"`);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        return r2Obj.Body.pipe(res);
+      }
+    } catch (_) {
+      // Not yet in R2 — generate on the fly below
+    }
+
+    // 2. Fallback: fetch invoice from Supabase, build PDF, upload to R2, and serve
+    const { data: invoice, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('quote_number', quoteNumber)
+      .single();
+
+    if (error || !invoice) {
+      return res.status(404).send('PDF not found');
+    }
+
+    const pdfBuf = await buildInvoicePdfBuffer(invoice, res.locals.settings || {});
+    uploadNamedBuffer(key, pdfBuf, 'application/pdf').catch(() => {});
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${quoteNumber}.pdf"`);
+    res.send(pdfBuf);
+  } catch (err) {
+    console.error('downloadPdfFile error:', err);
+    res.status(500).send('Unable to generate PDF');
   }
 };
 
