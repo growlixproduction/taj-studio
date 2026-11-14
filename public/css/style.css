@@ -4461,7 +4461,7 @@ textarea.form-control {
 
 
 /* =============================================================
-   FEATURED BRANDS & COLLECTIVES SECTION (HOME PAGE)
+   FEATURED BRANDS & COLLECTIVES SECTION (PURE CIRCLES IN ONE LINE)
    ============================================================= */
 .featured-brands-section {
   background: #faf7f2;
@@ -4471,7 +4471,7 @@ textarea.form-control {
 .featured-brands-header {
   text-align: center;
   max-width: 640px;
-  margin: 0 auto 3rem;
+  margin: 0 auto 3.25rem;
 }
 .featured-brands-header .eyebrow {
   display: inline-block;
@@ -4488,77 +4488,86 @@ textarea.form-control {
   margin-top: 0.5rem;
 }
 .featured-brands-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.75rem;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: clamp(1.5rem, 6vw, 5.5rem);
   max-width: 1020px;
   margin: 0 auto;
 }
 .featured-brand-card {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 14px;
-  padding: 1.85rem 1.5rem;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0.25rem !important;
   text-decoration: none;
   color: #161412;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  box-shadow: 0 8px 24px rgba(20, 18, 15, 0.04);
-  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+  flex: 1 1 0;
+  max-width: 240px;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .featured-brand-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 18px 36px rgba(20, 18, 15, 0.09);
-  border-color: rgba(197, 160, 89, 0.6);
+  transform: translateY(-6px);
 }
 .featured-brand-logo-wrap {
-  width: 122px;
-  height: 122px;
+  width: 138px;
+  height: 138px;
   border-radius: 50%;
   overflow: hidden;
   background: #0d0d0d;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.25rem;
-  border: 1.5px solid rgba(197, 160, 89, 0.38);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, border-color 0.3s ease;
+  margin-bottom: 1.15rem;
+  border: none;
+  box-shadow: 0 0 0 4px #faf7f2,
+              0 0 0 5.5px rgba(197, 160, 89, 0.55),
+              0 14px 32px rgba(20, 18, 15, 0.14);
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.38s ease;
 }
 .featured-brand-card:hover .featured-brand-logo-wrap {
-  transform: scale(1.04);
+  transform: scale(1.05);
+  box-shadow: 0 0 0 4px #faf7f2,
+              0 0 0 6px #c5a059,
+              0 20px 38px rgba(197, 160, 89, 0.28);
 }
 .featured-brand-logo-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 .featured-brand-info h3 {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1.55rem;
+  font-size: 1.45rem;
   font-weight: 600;
   color: #161412;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.2rem;
 }
 .featured-brand-info p {
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   color: #7c7267;
-  margin-bottom: 0.9rem;
-  line-height: 1.45;
+  margin-bottom: 0.45rem;
+  line-height: 1.4;
 }
 .featured-brand-visit {
   display: inline-block;
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   color: #b08d4f;
-  transition: letter-spacing 0.25s ease;
+  transition: letter-spacing 0.25s ease, color 0.25s ease;
 }
 .featured-brand-card:hover .featured-brand-visit {
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   color: #161412;
 }
 
@@ -4575,4 +4584,310 @@ textarea.form-control {
   width: auto;
   display: block;
   object-fit: contain;
+}
+
+/* =============================================================
+   EDITORIAL WORDMARK, SMART NAVBAR HIDE/SHOW, SKELETON & MOBILE UX
+   ============================================================= */
+.navbar {
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+              height 0.3s ease,
+              background-color 0.3s ease,
+              box-shadow 0.3s ease !important;
+  will-change: transform;
+}
+.navbar.nav-hidden {
+  transform: translateY(-105%) !important;
+}
+
+.nav-logo {
+  font-family: 'Cormorant Garamond', var(--font-serif);
+  font-weight: 600;
+  font-size: 1.9rem;
+  letter-spacing: 0.14em;
+  color: #181512;
+  text-decoration: none;
+  justify-self: start;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  line-height: 1;
+}
+.nav-logo em {
+  font-family: 'Cormorant Garamond', var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
+  color: #a67f38;
+  letter-spacing: 0.08em;
+}
+
+/* Shimmer Skeleton Preloader for Images & Media */
+@keyframes luxuryShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-box {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(110deg, #ede5d8 8%, #f8f4ec 18%, #ede5d8 33%);
+  background-size: 200% 100%;
+  animation: luxuryShimmer 1.35s linear infinite;
+}
+img.img-loading {
+  opacity: 0;
+  transform: scale(1.015);
+}
+img.img-loaded {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Smooth Scroll Reveal Upgrade */
+.reveal {
+  transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.65s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+/* Separate Luxury Trust Badge Cards (All Screens) */
+.stats {
+  padding: 2.25rem 0 !important;
+  background: #faf7f2 !important;
+  border-top: 1px solid rgba(197, 160, 89, 0.22) !important;
+  border-bottom: 1px solid rgba(197, 160, 89, 0.22) !important;
+}
+.stats-grid {
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 1.25rem !important;
+  align-items: stretch !important;
+}
+.stat-item {
+  position: relative;
+  background: #ffffff !important;
+  border: 1px solid rgba(197, 160, 89, 0.32) !important;
+  border-radius: 14px !important;
+  padding: 1.4rem 0.85rem !important;
+  box-shadow: 0 8px 24px rgba(24, 21, 18, 0.04) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.stat-item::before {
+  display: none !important;
+}
+.scroll-indicator {
+  display: none !important;
+}
+.stat-item:hover {
+  transform: translateY(-4px);
+  border-color: #c5a059 !important;
+  box-shadow: 0 16px 32px rgba(197, 160, 89, 0.14) !important;
+}
+.stat-item h3 {
+  font-family: 'Cormorant Garamond', var(--font-serif) !important;
+  color: #9e7832 !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  margin-bottom: 0.35rem !important;
+}
+.stat-item p {
+  color: #4a4238 !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+}
+
+/* =============================================================
+   COMPREHENSIVE MOBILE LUXURY OPTIMIZATION (<= 768px)
+   ============================================================= */
+@media (max-width: 768px) {
+  /* 1. Compact Glass Navbar */
+  .navbar,
+  .navbar.scrolled {
+    height: 62px !important;
+    padding: 0 !important;
+    background-color: rgba(250, 248, 245, 0.96) !important;
+  }
+  .nav-logo {
+    font-size: 1.55rem;
+    letter-spacing: 0.1em;
+  }
+
+  /* 2. Mobile Hero Slider */
+  .hero-slider-section {
+    height: 78vh !important;
+    min-height: 490px !important;
+    max-height: 660px !important;
+    margin-top: 62px;
+  }
+  .hero-content {
+    padding: 0 1.25rem !important;
+  }
+  .hero-content .eyebrow {
+    font-size: 0.64rem !important;
+    letter-spacing: 0.18em !important;
+    margin-bottom: 0.75rem !important;
+  }
+  .hero-content .display-headline {
+    font-size: clamp(2rem, 8.2vw, 2.75rem) !important;
+    line-height: 1.12 !important;
+    margin-bottom: 1.25rem !important;
+  }
+  .hero-btns {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0.65rem !important;
+  }
+  .hero-btns .btn {
+    width: 225px !important;
+    padding: 0.78rem 1.2rem !important;
+    font-size: 0.72rem !important;
+    border-radius: 999px !important;
+  }
+  .scroll-indicator {
+    display: none !important;
+  }
+  .hero-dots {
+    bottom: 1.15rem !important;
+  }
+
+  /* 3. Separate Luxury Trust Badge Cards on Mobile */
+  .stats {
+    padding: 1.25rem 0 !important;
+  }
+  .stats .container {
+    padding: 0 0.75rem !important;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0.48rem !important;
+  }
+  .stat-item {
+    padding: 0.75rem 0.2rem !important;
+    border-radius: 11px !important;
+    border: 1px solid rgba(197, 160, 89, 0.42) !important;
+    min-height: 74px !important;
+  }
+  .stat-item h3 {
+    font-size: clamp(1.25rem, 4.9vw, 1.55rem) !important;
+    margin-bottom: 0.22rem !important;
+  }
+  .stat-item p {
+    font-size: 0.45rem !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  /* 4. About Section Mobile Polish */
+  .about {
+    padding: 2.75rem 0 !important;
+  }
+  .about-grid {
+    gap: 1.65rem !important;
+  }
+  .about-img img {
+    width: 100% !important;
+    max-height: 250px !important;
+    object-fit: cover !important;
+    border-radius: 14px !important;
+    box-shadow: 0 10px 28px rgba(26, 24, 22, 0.1) !important;
+  }
+  .about-content .section-headline {
+    font-size: 1.85rem !important;
+    line-height: 1.18 !important;
+    margin-bottom: 0.85rem !important;
+  }
+  .about-content p {
+    font-size: 0.92rem !important;
+    line-height: 1.62 !important;
+    margin-bottom: 0.9rem !important;
+  }
+
+  /* 5. Services Showcase Cards (01, 02, 03) */
+  .services-showcase-section {
+    padding: 3rem 0 !important;
+  }
+  .services-header-wrapper {
+    margin-bottom: 1.75rem !important;
+  }
+  .service-row-item {
+    background: rgba(255, 255, 255, 0.035) !important;
+    border: 1px solid rgba(197, 160, 89, 0.2) !important;
+    border-radius: 14px !important;
+    padding: 1.15rem !important;
+    margin-bottom: 1rem !important;
+  }
+  .service-row-num {
+    font-size: 0.85rem !important;
+    color: var(--gold) !important;
+    margin-bottom: 0.35rem !important;
+  }
+  .service-row-content {
+    margin-bottom: 0.9rem !important;
+  }
+  .service-row-content h3 {
+    font-size: 1.45rem !important;
+    margin-bottom: 0.35rem !important;
+  }
+  .service-row-content p {
+    font-size: 0.86rem !important;
+    line-height: 1.5 !important;
+  }
+  .service-row-image-wrapper {
+    height: 185px !important;
+    border-radius: 10px !important;
+    margin-bottom: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* 6. Featured Brands: Pure Circles in ONE Horizontal Line on Mobile */
+  .featured-work,
+  .testimonials,
+  .cta-banner {
+    padding: 3rem 0 !important;
+  }
+  .featured-brands-section {
+    padding: 2.75rem 0 3.25rem !important;
+  }
+  .featured-brands-grid {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-around !important;
+    gap: 0.65rem !important;
+  }
+  .featured-brand-card {
+    padding: 0.15rem !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .featured-brand-logo-wrap {
+    width: 84px !important;
+    height: 84px !important;
+    margin-bottom: 0.7rem !important;
+  }
+  .featured-brand-info h3 {
+    font-size: 1.02rem !important;
+  }
+  .featured-brand-info p {
+    font-size: 0.68rem !important;
+    margin-bottom: 0.3rem !important;
+  }
+  .featured-brand-visit {
+    font-size: 0.62rem !important;
+  }
+
+  /* 7. Compact Floating WhatsApp Button on Mobile */
+  .wa-float-btn {
+    bottom: 14px !important;
+    right: 14px !important;
+    transform: scale(0.88);
+    transform-origin: bottom right;
+  }
 }

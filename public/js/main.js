@@ -1,19 +1,66 @@
 document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
-  // 1. NAVBAR SCROLL EFFECT
+  // 1. NAVBAR SCROLL & SMART HIDE/SHOW EFFECT
   // ==========================================
   const navbar = document.querySelector('.navbar');
   if (navbar) {
-    const handleScroll = () => {
-      if (window.scrollY > 80) {
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+
+    const updateNavbar = () => {
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollY;
+      const drawerOpen = document.querySelector('.mobile-nav.open');
+
+      if (currentY > 60) {
         navbar.classList.add('scrolled');
       } else {
         navbar.classList.remove('scrolled');
+        navbar.classList.remove('nav-hidden');
       }
+
+      if (!drawerOpen) {
+        if (currentY > 95 && delta > 6) {
+          navbar.classList.add('nav-hidden');
+        } else if (delta < -4 || currentY <= 70) {
+          navbar.classList.remove('nav-hidden');
+        }
+      }
+
+      lastScrollY = Math.max(0, currentY);
+      ticking = false;
     };
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Run once in case page starts scrolled
+
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateNavbar);
+        ticking = true;
+      }
+    }, { passive: true });
+    updateNavbar();
   }
+
+  // ==========================================
+  // 1B. PRELOADING SHIMMER SKELETON FOR IMAGES
+  // ==========================================
+  const allImages = document.querySelectorAll('img:not(.footer-logo-img)');
+  allImages.forEach((img) => {
+    const parent = img.parentElement;
+    const markLoaded = () => {
+      img.classList.remove('img-loading');
+      img.classList.add('img-loaded');
+      if (parent) parent.classList.remove('skeleton-box');
+    };
+
+    if (img.complete && img.naturalWidth > 0) {
+      img.classList.add('img-loaded');
+    } else {
+      img.classList.add('img-loading');
+      if (parent) parent.classList.add('skeleton-box');
+      img.addEventListener('load', markLoaded, { once: true });
+      img.addEventListener('error', markLoaded, { once: true });
+    }
+  });
 
   // ==========================================
   // 2. HAMBURGER MENU TOGGLE
