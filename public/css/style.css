@@ -4650,49 +4650,57 @@ img.img-loaded {
               transform 0.65s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
-/* Separate Luxury Trust Badge Cards (All Screens) */
-.stats {
-  padding: 2.25rem 0 !important;
-  background: #faf7f2 !important;
-  border-top: 1px solid rgba(197, 160, 89, 0.22) !important;
-  border-bottom: 1px solid rgba(197, 160, 89, 0.22) !important;
-}
-.stats-grid {
-  grid-template-columns: repeat(4, 1fr) !important;
-  gap: 1.25rem !important;
-  align-items: stretch !important;
-}
-.stat-item {
-  position: relative;
-  background: #ffffff !important;
-  border: 1px solid rgba(197, 160, 89, 0.32) !important;
-  border-radius: 14px !important;
-  padding: 1.4rem 0.85rem !important;
-  box-shadow: 0 8px 24px rgba(24, 21, 18, 0.04) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  overflow: hidden;
-  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-color 0.3s ease;
-}
-.stat-item::before {
-  display: none !important;
+/* Floating Architectural Trust Bar (All Screens) */
+.hero-content {
+  padding-top: 4.5rem !important;
 }
 .scroll-indicator {
   display: none !important;
 }
-.stat-item:hover {
-  transform: translateY(-4px);
-  border-color: #c5a059 !important;
-  box-shadow: 0 16px 32px rgba(197, 160, 89, 0.14) !important;
+.stats {
+  padding: 0 0 2.5rem !important;
+  background: transparent !important;
+  border: none !important;
+  position: relative;
+  z-index: 12;
+}
+.stats-grid {
+  max-width: 1040px;
+  margin: -2.5rem auto 0 !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(197, 160, 89, 0.38) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 18px 46px rgba(20, 18, 15, 0.09) !important;
+  padding: 1.55rem 0.5rem !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 0 !important;
+  align-items: center !important;
+}
+.stat-item {
+  position: relative;
+  background: transparent !important;
+  border: none !important;
+  border-right: 1px solid rgba(197, 160, 89, 0.26) !important;
+  border-radius: 0 !important;
+  padding: 0.35rem 0.75rem !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.stat-item:last-child {
+  border-right: none !important;
+}
+.stat-item::before {
+  display: none !important;
 }
 .stat-item h3 {
   font-family: 'Cormorant Garamond', var(--font-serif) !important;
   color: #9e7832 !important;
   font-weight: 700 !important;
   line-height: 1 !important;
-  margin-bottom: 0.35rem !important;
+  margin-bottom: 0.32rem !important;
 }
 .stat-item p {
   color: #4a4238 !important;
@@ -4755,26 +4763,33 @@ img.img-loaded {
     bottom: 1.15rem !important;
   }
 
-  /* 3. Separate Luxury Trust Badge Cards on Mobile */
+  /* 3. Floating Luxury Trust Bar on Mobile */
   .stats {
-    padding: 1.25rem 0 !important;
+    padding: 0 0 1.5rem !important;
   }
   .stats .container {
     padding: 0 0.75rem !important;
   }
   .stats-grid {
+    margin: -1.75rem auto 0 !important;
+    padding: 0.95rem 0.25rem !important;
+    border-radius: 14px !important;
     grid-template-columns: repeat(4, 1fr) !important;
-    gap: 0.48rem !important;
+    gap: 0 !important;
   }
   .stat-item {
-    padding: 0.75rem 0.2rem !important;
-    border-radius: 11px !important;
-    border: 1px solid rgba(197, 160, 89, 0.42) !important;
-    min-height: 74px !important;
+    padding: 0.2rem 0.15rem !important;
+    border: none !important;
+    border-right: 1px solid rgba(197, 160, 89, 0.25) !important;
+    border-radius: 0 !important;
+    min-height: auto !important;
+  }
+  .stat-item:last-child {
+    border-right: none !important;
   }
   .stat-item h3 {
-    font-size: clamp(1.25rem, 4.9vw, 1.55rem) !important;
-    margin-bottom: 0.22rem !important;
+    font-size: clamp(1.22rem, 4.8vw, 1.5rem) !important;
+    margin-bottom: 0.18rem !important;
   }
   .stat-item p {
     font-size: 0.45rem !important;
