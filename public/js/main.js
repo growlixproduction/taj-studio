@@ -347,55 +347,115 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 8. PHOTO LIGHTBOX WITH NAVIGATION
+  // 8. PHOTO & ALBUM STACK LIGHTBOX WITH THUMBNAIL STRIP
   // ==========================================
-  const photoItems = document.querySelectorAll('.photo-item-trigger');
   const lightboxModal = document.getElementById('lightboxModal');
   const lightboxImg = document.getElementById('lightboxImg');
   const lightboxCaption = document.getElementById('lightboxCaption');
+  const lightboxCounter = document.getElementById('lightboxCounter');
+  const lightboxThumbs = document.getElementById('lightboxThumbs');
   const lightboxPrev = document.getElementById('lightboxPrev');
   const lightboxNext = document.getElementById('lightboxNext');
   const lightboxClose = document.getElementById('lightboxClose');
 
-  if (photoItems.length > 0 && lightboxModal && lightboxImg && lightboxClose) {
+  if (lightboxModal && lightboxImg && lightboxClose) {
     let currentPhotoIndex = 0;
-    const photoList = [];
+    let activePhotoList = [];
 
-    // Collect all photos in this gallery
-    photoItems.forEach((item, index) => {
-      photoList.push({
-        src: item.getAttribute('data-src') || item.querySelector('img').getAttribute('src'),
-        title: item.getAttribute('data-title') || ''
+    const renderThumbs = () => {
+      if (!lightboxThumbs) return;
+      lightboxThumbs.innerHTML = '';
+      if (activePhotoList.length <= 1) {
+        lightboxThumbs.style.display = 'none';
+        return;
+      }
+      lightboxThumbs.style.display = 'flex';
+      activePhotoList.forEach((p, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'lightbox-thumb-btn' + (idx === currentPhotoIndex ? ' active' : '');
+        const im = document.createElement('img');
+        im.src = p.src;
+        im.alt = `Photo ${idx + 1}`;
+        btn.appendChild(im);
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          currentPhotoIndex = idx;
+          updateLightboxContent();
+        });
+        lightboxThumbs.appendChild(btn);
       });
+    };
 
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        currentPhotoIndex = index;
-        openLightbox();
-      });
-    });
+    const updateLightboxContent = () => {
+      const currentPhoto = activePhotoList[currentPhotoIndex];
+      if (!currentPhoto) return;
+      lightboxImg.src = currentPhoto.src;
+      if (lightboxCaption) {
+        lightboxCaption.innerText = currentPhoto.title || 'Taj Studio Photography';
+      }
+      if (lightboxCounter) {
+        lightboxCounter.innerText = activePhotoList.length > 1
+          ? `${currentPhotoIndex + 1} / ${activePhotoList.length}`
+          : '';
+        lightboxCounter.style.display = activePhotoList.length > 1 ? 'inline-block' : 'none';
+      }
+      if (lightboxThumbs) {
+        const btns = lightboxThumbs.querySelectorAll('.lightbox-thumb-btn');
+        btns.forEach((b, i) => b.classList.toggle('active', i === currentPhotoIndex));
+      }
+    };
 
-    const openLightbox = () => {
+    const openLightboxWithList = (list, startIndex = 0) => {
+      activePhotoList = list;
+      currentPhotoIndex = startIndex;
+      renderThumbs();
       updateLightboxContent();
       lightboxModal.classList.add('active');
       document.body.style.overflow = 'hidden';
     };
 
-    const updateLightboxContent = () => {
-      const currentPhoto = photoList[currentPhotoIndex];
-      lightboxImg.src = currentPhoto.src;
-      if (lightboxCaption) {
-        lightboxCaption.innerText = currentPhoto.title || 'Taj Studio Photography';
+    // Delegate click on any .photo-item-trigger (supports stacks & single photos)
+    document.addEventListener('click', (e) => {
+      const trigger = e.target.closest('.photo-item-trigger');
+      if (!trigger) return;
+      e.preventDefault();
+
+      const title = trigger.getAttribute('data-title') || 'Taj Studio Photography';
+      const rawStack = trigger.getAttribute('data-stack');
+      if (rawStack) {
+        try {
+          const urls = JSON.parse(rawStack);
+          if (Array.isArray(urls) && urls.length > 0) {
+            const list = urls.map((u, i) => ({
+              src: u,
+              title: urls.length > 1 ? `${title} — Photo ${i + 1} of ${urls.length}` : title
+            }));
+            openLightboxWithList(list, 0);
+            return;
+          }
+        } catch (_) {}
       }
-    };
+
+      // Fallback: collect all single .photo-item-trigger elements on page
+      const allTriggers = Array.from(document.querySelectorAll('.photo-item-trigger'));
+      const list = allTriggers.map((el) => ({
+        src: el.getAttribute('data-src') || (el.querySelector('img') ? el.querySelector('img').getAttribute('src') : ''),
+        title: el.getAttribute('data-title') || 'Taj Studio Photography'
+      }));
+      const idx = Math.max(0, allTriggers.indexOf(trigger));
+      openLightboxWithList(list, idx);
+    });
 
     const showNextPhoto = () => {
-      currentPhotoIndex = (currentPhotoIndex + 1) % photoList.length;
+      if (!activePhotoList.length) return;
+      currentPhotoIndex = (currentPhotoIndex + 1) % activePhotoList.length;
       updateLightboxContent();
     };
 
     const showPrevPhoto = () => {
-      currentPhotoIndex = (currentPhotoIndex - 1 + photoList.length) % photoList.length;
+      if (!activePhotoList.length) return;
+      currentPhotoIndex = (currentPhotoIndex - 1 + activePhotoList.length) % activePhotoList.length;
       updateLightboxContent();
     };
 
@@ -414,7 +474,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Keyboard Navigation
     document.addEventListener('keydown', (e) => {
       if (lightboxModal.classList.contains('active')) {
         if (e.key === 'ArrowRight') showNextPhoto();
@@ -423,27 +482,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Touch Swipe Support
     let touchStartX = 0;
     let touchEndX = 0;
-    
     lightboxModal.addEventListener('touchstart', (e) => {
       touchStartX = e.changedTouches[0].screenX;
     }, { passive: true });
-
     lightboxModal.addEventListener('touchend', (e) => {
       touchEndX = e.changedTouches[0].screenX;
-      handleSwipe();
+      if (touchEndX < touchStartX - 50) showNextPhoto();
+      if (touchEndX > touchStartX + 50) showPrevPhoto();
     }, { passive: true });
-
-    const handleSwipe = () => {
-      if (touchEndX < touchStartX - 50) {
-        showNextPhoto(); // Swipe left
-      }
-      if (touchEndX > touchStartX + 50) {
-        showPrevPhoto(); // Swipe right
-      }
-    };
   }
 
   // ==========================================
@@ -650,98 +698,143 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================
-  // 14. UGC REELS CAROUSEL AUTOMATIC SEAMLESS SCROLL
+  // 14. UGC REELS CONTINUOUS SLIDER + LEFT/RIGHT END BUTTONS
   // ==========================================
   const ugcViewport = document.querySelector('.ugc-carousel-viewport');
   const ugcContainer = document.querySelector('.ugc-carousel-container');
   const ugcPrevBtn = document.querySelector('.ugc-prev');
   const ugcNextBtn = document.querySelector('.ugc-next');
-  
+
   if (ugcViewport && ugcContainer) {
-    const duration = parseInt(ugcViewport.getAttribute('data-autoplay-speed')) || 4000;
-    
-    // Duplicate slides dynamically in JS for endless seamless scroll
-    const slides = Array.from(ugcContainer.querySelectorAll('.ugc-slide'));
-    if (slides.length > 0) {
-      // Clone them once to make it seamless
-      slides.forEach(slide => {
+    const origSlides = Array.from(ugcContainer.querySelectorAll('.ugc-slide'));
+    if (origSlides.length > 0) {
+      // Clone once for seamless infinite continuous loop
+      origSlides.forEach((slide) => {
         const clone = slide.cloneNode(true);
+        clone.setAttribute('aria-hidden', 'true');
         ugcContainer.appendChild(clone);
       });
-      
-      // Calculate speed based on setting duration: 
-      // If duration is 4000ms, speed = 1000/4000 = 0.25 pixels per frame (~15px/sec)
-      let speed = 1000 / duration; 
-      if (speed <= 0 || isNaN(speed)) speed = 0.5;
-      
-      let scrollPos = 0;
-      let isHovered = false;
-      let animFrameId;
-      
-      const tick = () => {
-        if (!isHovered) {
+
+      let scrollPos = ugcViewport.scrollLeft || 0;
+      let isPaused = false;
+      let resumeTimeout = null;
+      const speed = 0.7; // smooth continuous glide
+
+      const stepLoop = () => {
+        if (!isPaused) {
           scrollPos += speed;
-          
-          // Half width is the exact original width of the slides
-          const originalWidth = ugcContainer.scrollWidth / 2;
-          
-          if (scrollPos >= originalWidth) {
-            scrollPos = 0; // Wrap around instantly (invisible snap)
+          const halfWidth = ugcContainer.scrollWidth / 2;
+          if (halfWidth > 0 && scrollPos >= halfWidth) {
+            scrollPos -= halfWidth;
           }
           ugcViewport.scrollLeft = scrollPos;
+        } else {
+          scrollPos = ugcViewport.scrollLeft;
         }
-        animFrameId = requestAnimationFrame(tick);
+        requestAnimationFrame(stepLoop);
       };
-      
-      // Start loop
-      tick();
-      
-      // Hover bindings to pause marquee on hover
-      const pauseMarquee = () => { isHovered = true; };
-      const resumeMarquee = () => { isHovered = false; };
-      
-      ugcViewport.addEventListener('mouseenter', pauseMarquee);
-      ugcViewport.addEventListener('mouseleave', resumeMarquee);
-      ugcViewport.addEventListener('mouseover', pauseMarquee);
-      ugcViewport.addEventListener('mouseout', resumeMarquee);
-      
-      // Manual Next/Prev click updates position smoothly
-      const getSlideWidth = () => {
+      requestAnimationFrame(stepLoop);
+
+      const pauseTemporarily = (ms = 2200) => {
+        isPaused = true;
+        if (resumeTimeout) clearTimeout(resumeTimeout);
+        resumeTimeout = setTimeout(() => {
+          scrollPos = ugcViewport.scrollLeft;
+          isPaused = false;
+        }, ms);
+      };
+
+      ugcViewport.addEventListener('mouseenter', () => { isPaused = true; });
+      ugcViewport.addEventListener('mouseleave', () => {
+        scrollPos = ugcViewport.scrollLeft;
+        isPaused = false;
+      });
+      ugcViewport.addEventListener('touchstart', () => { isPaused = true; }, { passive: true });
+      ugcViewport.addEventListener('touchend', () => pauseTemporarily(2500), { passive: true });
+
+      const getStepWidth = () => {
         const slide = ugcContainer.querySelector('.ugc-slide');
-        if (!slide) return 320;
-        const style = window.getComputedStyle(slide);
-        const marginRight = parseInt(style.marginRight, 10) || 0;
-        return slide.offsetWidth + marginRight;
+        if (!slide) return 240;
+        const gap = parseFloat(window.getComputedStyle(ugcContainer).gap || '20') || 20;
+        return slide.offsetWidth + gap;
       };
-      
+
       if (ugcNextBtn) {
         ugcNextBtn.addEventListener('click', () => {
-          const slideWidth = getSlideWidth();
-          scrollPos += slideWidth;
-          const originalWidth = ugcContainer.scrollWidth / 2;
-          if (scrollPos >= originalWidth) {
-            scrollPos -= originalWidth;
+          pauseTemporarily(1800);
+          const step = getStepWidth();
+          const halfWidth = ugcContainer.scrollWidth / 2;
+          let target = ugcViewport.scrollLeft + step;
+          if (halfWidth > 0 && target >= halfWidth) {
+            ugcViewport.scrollLeft -= halfWidth;
+            target -= halfWidth;
           }
-          ugcViewport.scrollLeft = scrollPos;
+          ugcViewport.scrollTo({ left: target, behavior: 'smooth' });
         });
       }
-      
+
       if (ugcPrevBtn) {
         ugcPrevBtn.addEventListener('click', () => {
-          const slideWidth = getSlideWidth();
-          scrollPos -= slideWidth;
-          if (scrollPos < 0) {
-            const originalWidth = ugcContainer.scrollWidth / 2;
-            scrollPos += originalWidth;
+          pauseTemporarily(1800);
+          const step = getStepWidth();
+          const halfWidth = ugcContainer.scrollWidth / 2;
+          if (ugcViewport.scrollLeft <= 10 && halfWidth > 0) {
+            ugcViewport.scrollLeft += halfWidth;
           }
-          ugcViewport.scrollLeft = scrollPos;
+          const target = Math.max(0, ugcViewport.scrollLeft - step);
+          ugcViewport.scrollTo({ left: target, behavior: 'smooth' });
         });
       }
-      
-      window.addEventListener('resize', () => {
-        scrollPos = 0;
-        ugcViewport.scrollLeft = 0;
-      });
     }
+  }
+
+  // ==========================================
+  // 15. 21ST.DEV INTERACTIVE ACCORDION, SPOTLIGHT & MAGNETIC UI
+  // ==========================================
+  const accPanels = document.querySelectorAll('.t21-acc-panel');
+  accPanels.forEach((panel) => {
+    panel.addEventListener('mouseenter', () => {
+      accPanels.forEach((p) => p.classList.remove('active'));
+      panel.classList.add('active');
+    });
+  });
+
+  const spotlightCards = document.querySelectorAll('.t21-spotlight-card');
+  spotlightCards.forEach((card) => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      card.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+      card.style.setProperty('--my', `${e.clientY - rect.top}px`);
+    });
+  });
+
+  const magneticBtns = document.querySelectorAll('.t21-magnetic');
+  magneticBtns.forEach((btn) => {
+    btn.addEventListener('mousemove', (e) => {
+      const rect = btn.getBoundingClientRect();
+      const dx = (e.clientX - (rect.left + rect.width / 2)) * 0.18;
+      const dy = (e.clientY - (rect.top + rect.height / 2)) * 0.22;
+      btn.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.transform = '';
+    });
+  });
+
+  // Smart Viewport Auto-Preview for Video Cards (plays only when visible, avoids black boxes)
+  const previewVideos = document.querySelectorAll('.ugc-video-preview, .carousel-video-preview');
+  if (previewVideos.length > 0 && 'IntersectionObserver' in window) {
+    const vidObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const vid = entry.target;
+        if (entry.isIntersecting) {
+          vid.play().catch(() => {});
+        } else {
+          vid.pause();
+        }
+      });
+    }, { threshold: 0.25 });
+
+    previewVideos.forEach((v) => vidObserver.observe(v));
   }
 });

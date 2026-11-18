@@ -16,16 +16,32 @@ app.set('views', path.join(__dirname, 'views'));
 // CORS setup
 app.use(cors());
 
-// Cloudflare R2 Media Streaming Route (with long-lived edge cache)
+// Cloudflare R2 Media Streaming Route (with byte-range support & long-lived edge cache)
 const { getR2Object } = require('./utils/storage');
 app.get('/media/*', async (req, res, next) => {
   const key = req.params[0];
   if (!key) return next();
   try {
-    const data = await getR2Object(key);
+    let rangeHeader = req.headers.range;
+    // Cap open-ended video ranges to 3MB chunks so serverless responses stay fast & under payload limits
+    if (rangeHeader && /^bytes=\d+-$/.test(rangeHeader)) {
+      const start = parseInt(rangeHeader.replace('bytes=', '').replace('-', ''), 10);
+      if (!isNaN(start)) {
+        rangeHeader = `bytes=${start}-${start + 3 * 1024 * 1024 - 1}`;
+      }
+    }
+    const data = await getR2Object(key, rangeHeader);
     if (!data || !data.Body) return res.status(404).send('Media not found');
     if (data.ContentType) res.setHeader('Content-Type', data.ContentType);
+    res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    if (data.ContentRange) {
+      res.setHeader('Content-Range', data.ContentRange);
+      if (data.ContentLength != null) res.setHeader('Content-Length', String(data.ContentLength));
+      res.status(206);
+    } else if (data.ContentLength != null) {
+      res.setHeader('Content-Length', String(data.ContentLength));
+    }
     if (typeof data.Body.pipe === 'function') {
       data.Body.pipe(res);
     } else {
@@ -79,12 +95,31 @@ app.use(cookieSession({
 // Flash messages
 app.use(flash());
 
-// Global flash and session variables available in EJS views
+// Global flash and session variables available in EJS views (with 60s in-memory settings cache)
+let cachedSettingsObj = null;
+let cachedSettingsAt = 0;
+const SETTINGS_CACHE_TTL = 60 * 1000;
+
 app.use(async (req, res, next) => {
   res.locals.success = req.flash('success');
   res.locals.error = req.flash('error');
   res.locals.admin = req.session.admin || null;
-  
+
+  // Invalidate cache if admin just updated settings/content
+  if (req.method === 'POST' && req.path.includes('/admin')) {
+    cachedSettingsObj = null;
+    try {
+      const pubCtrl = require('./controllers/publicController');
+      if (pubCtrl.clearHomeCache) pubCtrl.clearHomeCache();
+    } catch (_) {}
+  }
+
+  const now = Date.now();
+  if (cachedSettingsObj && (now - cachedSettingsAt) < SETTINGS_CACHE_TTL) {
+    res.locals.settings = cachedSettingsObj;
+    return next();
+  }
+
   try {
     const [rows] = await db.query('SELECT setting_key, setting_value FROM settings');
     const settings = {};
@@ -93,6 +128,7 @@ app.use(async (req, res, next) => {
     });
     
     res.locals.settings = {
+      ...settings,
       store_name: settings.store_name || 'Taj Studio',
       footer_about: settings.footer_about || 'Capturing your life\'s most precious stories and emotions. Cinematic filmmaking and high-end artistic photography based in India.',
       about_eyebrow: settings.about_eyebrow || 'Who We Are',
@@ -110,6 +146,8 @@ app.use(async (req, res, next) => {
       contact_youtube: settings.contact_youtube || 'https://youtube.com',
       contact_whatsapp: settings.contact_whatsapp || 'https://wa.me/919999999999'
     };
+    cachedSettingsObj = res.locals.settings;
+    cachedSettingsAt = now;
   } catch (err) {
     res.locals.settings = {
       store_name: 'Taj Studio',

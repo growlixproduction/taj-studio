@@ -26,6 +26,7 @@ router.get('/messages', ctrl.messages);
 
 router.delete('/video/:id', ctrl.deleteVideo);
 router.delete('/photo/:id', ctrl.deletePhoto);
+router.post('/photo-stack/update', upload.array('new_photos', 20), ctrl.updatePhotoStack);
 
 // Site Custom Settings Routes
 router.get('/settings', ctrl.settingsPage);

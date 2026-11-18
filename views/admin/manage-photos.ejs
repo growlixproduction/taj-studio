@@ -57,23 +57,44 @@
               <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
             </svg>
           </div>
-          <div class="admin-photo-card-thumb">
+          <div class="admin-photo-card-thumb photo-item-trigger"
+               style="position: relative; cursor: pointer;"
+               data-src="<%= photo.file_path %>"
+               data-title="<%= photo.title || photo.alt_text || 'Album Stack' %>"
+               data-stack='<%= JSON.stringify(photo.images || [photo.file_path]) %>'>
             <img src="<%= photo.file_path %>" alt="<%= photo.alt_text %>" loading="lazy">
+            <% if (photo.count && photo.count > 1) { %>
+              <span class="stack-count-badge" title="Click to preview all <%= photo.count %> photos in this stack">
+                &#10064; <%= photo.count %> Photos
+              </span>
+            <% } %>
           </div>
-          <div class="admin-photo-card-details">
-            <div>
-              <span class="admin-tag" style="background-color: var(--surface); color: var(--text);"><%= photo.category %></span>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                <%= photo.alt_text || 'No Alt Text' %>
-              </p>
+          <div class="admin-photo-card-details" style="display: flex; flex-direction: column; align-items: stretch; gap: 0.45rem; padding: 0.85rem 0.9rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+              <span class="admin-tag" style="background-color: var(--surface); color: var(--text); font-size: 0.65rem;"><%= photo.category %></span>
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <button type="button"
+                        class="btn-edit-stack"
+                        data-stack-key="<%= photo.stackKey %>"
+                        data-title="<%= photo.alt_text || photo.title || '' %>"
+                        data-category="<%= photo.category %>"
+                        data-photos='<%= JSON.stringify(photo.photos || [{ id: photo.id, file_path: photo.file_path }]) %>'
+                        title="Edit Stack (Title, Order, Cover, Delete Individual Photos)">
+                  Edit
+                </button>
+
+                <!-- DELETE Photo / Stack Form -->
+                <form action="/admin/photo/<%= photo.id %>?_method=DELETE" method="POST" class="admin-delete-form" style="margin:0;" onsubmit="return confirm('Delete entire photo stack (<%= photo.count || 1 %> photo(s))?');">
+                  <input type="hidden" name="stack_ids" value="<%= (photo.allIds || [photo.id]).join(',') %>">
+                  <button type="submit" class="btn-delete" title="Delete Entire Stack" style="color: var(--danger); padding: 0.2rem;">
+                    <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                  </button>
+                </form>
+              </div>
             </div>
-            
-            <!-- DELETE Photo Form -->
-            <form action="/admin/photo/<%= photo.id %>?_method=DELETE" method="POST" class="admin-delete-form">
-              <button type="submit" class="btn-delete" title="Delete Photo" style="color: var(--danger);">
-                <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
-              </button>
-            </form>
+            <p style="font-size: 0.82rem; font-weight: 600; color: var(--text); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              <%= photo.alt_text || photo.title || (photo.count > 1 ? photo.count + ' Photo Stack' : 'Single Photo') %>
+            </p>
           </div>
         </div>
       <% }) %>
@@ -82,6 +103,75 @@
 </main>
 
 <%- include('../partials/admin-mobile-nav') %>
+
+<!-- Lightbox Modal for Stack Preview in Admin -->
+<div id="lightboxModal" class="modal">
+  <button class="modal-close" id="lightboxClose" aria-label="Close Lightbox">&times;</button>
+  <div class="lightbox-container">
+    <div class="lightbox-counter" id="lightboxCounter"></div>
+    <div class="lightbox-img-wrapper">
+      <button class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="Previous Image">&lsaquo;</button>
+      <img id="lightboxImg" class="lightbox-img" src="" alt="Taj Studio Lightbox Preview">
+      <button class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="Next Image">&rsaquo;</button>
+    </div>
+    <div class="lightbox-caption" id="lightboxCaption"></div>
+    <div class="lightbox-thumbs" id="lightboxThumbs"></div>
+  </div>
+</div>
+
+<!-- Interactive Edit Album Stack Modal -->
+<div id="stackEditorModal" class="stack-editor-backdrop" style="display: none;">
+  <div class="stack-editor-dialog">
+    <div class="stack-editor-header">
+      <div>
+        <h3>Edit Album Stack</h3>
+        <p>Edit title, choose cover photo, reorder photos (← / → or drag), or delete single photos.</p>
+      </div>
+      <button type="button" class="stack-editor-close" id="closeStackEditor">&times;</button>
+    </div>
+
+    <form action="/admin/photo-stack/update" method="POST" enctype="multipart/form-data" id="stackEditorForm">
+      <input type="hidden" name="stack_key" id="seStackKey">
+      <input type="hidden" name="ordered_ids" id="seOrderedIds">
+      <input type="hidden" name="deleted_ids" id="seDeletedIds">
+
+      <div class="stack-editor-fields">
+        <div class="se-field">
+          <label for="seAlbumTitle">Album / Couple Title</label>
+          <input type="text" name="album_title" id="seAlbumTitle" placeholder="e.g. Hrutvik & Preksha Engagement">
+        </div>
+        <div class="se-field">
+          <label for="seCategory">Category</label>
+          <select name="category" id="seCategory">
+            <option value="wedding">Wedding Portfolio</option>
+            <option value="prewedding">Pre-Wedding Portfolio</option>
+            <option value="anniversary">Anniversary Portfolio</option>
+            <option value="engagement">Engagement Portfolio</option>
+            <option value="birthday">Birthday Portfolio</option>
+            <option value="indoor">Indoor Portfolio</option>
+          </select>
+        </div>
+        <div class="se-field">
+          <label for="seNewPhotos">+ Add More Photos to Stack (Optional)</label>
+          <input type="file" name="new_photos" id="seNewPhotos" accept="image/*" multiple>
+        </div>
+      </div>
+
+      <div class="se-photos-header">
+        <strong>Photos in this Stack (<span id="sePhotoCount">0</span>)</strong>
+        <span>First photo (#1) is shown as the main Stack Cover on the website.</span>
+      </div>
+
+      <div class="se-photos-grid" id="sePhotosGrid"></div>
+
+      <div class="stack-editor-footer">
+        <button type="button" class="se-btn-cancel" id="cancelStackEditor">Cancel</button>
+        <button type="submit" class="se-btn-save">Save Stack Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script src="/js/main.js"></script>
 
 <style>
@@ -95,7 +185,361 @@
   padding: 4px 5px; color: #888; cursor: grab;
   display: flex; align-items: center;
 }
+.btn-edit-stack {
+  background: #f4ece0;
+  color: #7c5626;
+  border: 1px solid rgba(166, 117, 59, 0.45);
+  border-radius: 6px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-edit-stack:hover {
+  background: #a6753b;
+  color: #ffffff;
+}
+.stack-editor-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  background: rgba(20, 17, 14, 0.72);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+.stack-editor-dialog {
+  background: #faf7f2;
+  color: #231d18;
+  border: 1.5px solid rgba(166, 117, 59, 0.4);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 880px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+.stack-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e4dacb;
+  margin-bottom: 1.15rem;
+}
+.stack-editor-header h3 {
+  font-family: var(--font-serif);
+  font-size: 1.55rem;
+  margin: 0 0 0.2rem;
+  color: #231d18;
+}
+.stack-editor-header p {
+  font-size: 0.84rem;
+  color: #6b5e51;
+  margin: 0;
+}
+.stack-editor-close {
+  background: transparent;
+  border: none;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #6b5e51;
+  cursor: pointer;
+}
+.stack-editor-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+.se-field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5b4f43;
+  margin-bottom: 0.35rem;
+}
+.se-field input,
+.se-field select {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1.5px solid #d5c9b8;
+  background: #ffffff;
+  color: #231d18;
+  font-size: 0.9rem;
+}
+.se-photos-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  font-size: 0.85rem;
+}
+.se-photos-header span {
+  color: #7c5626;
+  font-size: 0.78rem;
+}
+.se-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.35rem;
+}
+.se-photo-tile {
+  background: #ffffff;
+  border: 1.5px solid #ded3c3;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.se-photo-tile.is-cover {
+  border-color: #a6753b;
+  box-shadow: 0 6px 18px rgba(166, 117, 59, 0.22);
+}
+.se-photo-thumb {
+  position: relative;
+  height: 135px;
+  background: #181512;
+}
+.se-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.se-pos-badge {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  background: rgba(24, 19, 15, 0.82);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+.se-photo-tile.is-cover .se-pos-badge {
+  background: #a6753b;
+  color: #ffffff;
+}
+.se-tile-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  padding: 0.45rem;
+  background: #faf7f2;
+}
+.se-mini-btn {
+  border: 1px solid #d5c9b8;
+  background: #ffffff;
+  color: #231d18;
+  border-radius: 6px;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.se-mini-btn:hover {
+  background: #a6753b;
+  color: #ffffff;
+  border-color: #a6753b;
+}
+.se-mini-del {
+  border: 1px solid #fca5a5;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 6px;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.stack-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e4dacb;
+}
+.se-btn-cancel {
+  background: #ffffff;
+  color: #5b4f43;
+  border: 1.5px solid #d5c9b8;
+  border-radius: 8px;
+  padding: 0.65rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.se-btn-save {
+  background: #a6753b;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1.4rem;
+  font-weight: 700;
+  cursor: pointer;
+}
 </style>
+
+<script>
+(function() {
+  const modal = document.getElementById('stackEditorModal');
+  const closeBtn = document.getElementById('closeStackEditor');
+  const cancelBtn = document.getElementById('cancelStackEditor');
+  const grid = document.getElementById('sePhotosGrid');
+  const countEl = document.getElementById('sePhotoCount');
+  const stackKeyInp = document.getElementById('seStackKey');
+  const orderedIdsInp = document.getElementById('seOrderedIds');
+  const deletedIdsInp = document.getElementById('seDeletedIds');
+  const titleInp = document.getElementById('seAlbumTitle');
+  const catSel = document.getElementById('seCategory');
+
+  let currentPhotos = [];
+  let deletedIds = [];
+
+  function syncHiddenInputs() {
+    orderedIdsInp.value = currentPhotos.map(p => p.id).join(',');
+    deletedIdsInp.value = deletedIds.join(',');
+    countEl.textContent = String(currentPhotos.length);
+  }
+
+  function renderStackTiles() {
+    grid.innerHTML = '';
+    currentPhotos.forEach((p, idx) => {
+      const tile = document.createElement('div');
+      tile.className = 'se-photo-tile' + (idx === 0 ? ' is-cover' : '');
+
+      const thumb = document.createElement('div');
+      thumb.className = 'se-photo-thumb';
+      const img = document.createElement('img');
+      img.src = p.file_path;
+      img.alt = 'Photo ' + (idx + 1);
+      const badge = document.createElement('span');
+      badge.className = 'se-pos-badge';
+      badge.textContent = idx === 0 ? '★ #1 COVER' : '#' + (idx + 1);
+      thumb.appendChild(img);
+      thumb.appendChild(badge);
+
+      const actions = document.createElement('div');
+      actions.className = 'se-tile-actions';
+
+      const leftGroup = document.createElement('div');
+      leftGroup.style.cssText = 'display:flex;gap:3px;';
+
+      const prevB = document.createElement('button');
+      prevB.type = 'button';
+      prevB.className = 'se-mini-btn';
+      prevB.textContent = '←';
+      prevB.title = 'Move Earlier';
+      prevB.disabled = idx === 0;
+      prevB.onclick = () => {
+        if (idx > 0) {
+          const tmp = currentPhotos[idx - 1];
+          currentPhotos[idx - 1] = currentPhotos[idx];
+          currentPhotos[idx] = tmp;
+          renderStackTiles();
+        }
+      };
+
+      const nextB = document.createElement('button');
+      nextB.type = 'button';
+      nextB.className = 'se-mini-btn';
+      nextB.textContent = '→';
+      nextB.title = 'Move Later';
+      nextB.disabled = idx === currentPhotos.length - 1;
+      nextB.onclick = () => {
+        if (idx < currentPhotos.length - 1) {
+          const tmp = currentPhotos[idx + 1];
+          currentPhotos[idx + 1] = currentPhotos[idx];
+          currentPhotos[idx] = tmp;
+          renderStackTiles();
+        }
+      };
+
+      leftGroup.appendChild(prevB);
+      leftGroup.appendChild(nextB);
+
+      if (idx > 0) {
+        const coverB = document.createElement('button');
+        coverB.type = 'button';
+        coverB.className = 'se-mini-btn';
+        coverB.textContent = '★ Cover';
+        coverB.title = 'Set as #1 Cover Photo';
+        coverB.onclick = () => {
+          const [item] = currentPhotos.splice(idx, 1);
+          currentPhotos.unshift(item);
+          renderStackTiles();
+        };
+        leftGroup.appendChild(coverB);
+      }
+
+      const delB = document.createElement('button');
+      delB.type = 'button';
+      delB.className = 'se-mini-del';
+      delB.textContent = '✕';
+      delB.title = 'Delete this single photo from stack';
+      delB.onclick = () => {
+        if (currentPhotos.length <= 1) {
+          alert('At least 1 photo must remain in the stack (or use the trash button on the card to delete the entire stack).');
+          return;
+        }
+        deletedIds.push(p.id);
+        currentPhotos.splice(idx, 1);
+        renderStackTiles();
+      };
+
+      actions.appendChild(leftGroup);
+      actions.appendChild(delB);
+
+      tile.appendChild(thumb);
+      tile.appendChild(actions);
+      grid.appendChild(tile);
+    });
+    syncHiddenInputs();
+  }
+
+  document.querySelectorAll('.btn-edit-stack').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      stackKeyInp.value = btn.getAttribute('data-stack-key') || '';
+      titleInp.value = btn.getAttribute('data-title') || '';
+      catSel.value = btn.getAttribute('data-category') || 'wedding';
+      deletedIds = [];
+      try {
+        currentPhotos = JSON.parse(btn.getAttribute('data-photos') || '[]');
+      } catch (_) {
+        currentPhotos = [];
+      }
+      renderStackTiles();
+      modal.style.display = 'flex';
+    });
+  });
+
+  function closeEditor() {
+    modal.style.display = 'none';
+  }
+  if (closeBtn) closeBtn.addEventListener('click', closeEditor);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeEditor);
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeEditor();
+    });
+  }
+})();
+</script>
 
 <script>
 (function() {

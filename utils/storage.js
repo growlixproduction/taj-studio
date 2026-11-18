@@ -89,14 +89,18 @@ async function uploadFile(file, folder = 'photos') {
 }
 
 /**
- * Fetch an object from Cloudflare R2 for /media/* route
+ * Fetch an object from Cloudflare R2 for /media/* route (supports Range header for fast video streaming)
  */
-async function getR2Object(key) {
+async function getR2Object(key, range) {
   if (!r2Client) return null;
-  return await r2Client.send(new GetObjectCommand({
+  const params = {
     Bucket: r2Bucket,
     Key: key
-  }));
+  };
+  if (range) {
+    params.Range = range;
+  }
+  return await r2Client.send(new GetObjectCommand(params));
 }
 
 /**

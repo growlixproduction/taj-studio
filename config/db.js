@@ -361,13 +361,24 @@ async function query(sql, params = []) {
     }
 
     if (sqlLower.startsWith('insert into photos')) {
-      const [category, file_path, alt_text] = params;
-      const { error } = await supabase.from('photos').insert([{
-        category,
-        file_path,
-        alt_text: alt_text || ''
-      }]);
-      if (error) throw error;
+      if (params.length >= 4) {
+        const [title, category, file_path, alt_text] = params;
+        const { error } = await supabase.from('photos').insert([{
+          title,
+          category,
+          file_path,
+          alt_text: alt_text || ''
+        }]);
+        if (error) throw error;
+      } else {
+        const [category, file_path, alt_text] = params;
+        const { error } = await supabase.from('photos').insert([{
+          category,
+          file_path,
+          alt_text: alt_text || ''
+        }]);
+        if (error) throw error;
+      }
       return [{ affectedRows: 1 }];
     }
 

@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { groupPhotosIntoStacks } = require('../utils/photoStacks');
 
 const DEFAULT_BRANDS = [
   { id: 1, name: 'CINEVO', tagline: 'Luxury Cinema & Production', logo_url: '/media/brands/cinevo-logo.jpg', website_url: 'https://cinevo.in/' },
@@ -6,36 +7,62 @@ const DEFAULT_BRANDS = [
   { id: 3, name: 'Stories By Wedding', tagline: 'Wedding Stories on Instagram', logo_url: '/media/brands/stories-by-wedding-logo.jpg', website_url: 'https://www.instagram.com/storiesbywedding/' }
 ];
 
+let homeCache = null;
+let homeCacheAt = 0;
+const HOME_CACHE_TTL = 10 * 1000; // 10s fast memory cache, cleared immediately on admin POST
+
+exports.clearHomeCache = () => {
+  homeCache = null;
+  homeCacheAt = 0;
+};
+
 exports.home = async (req, res, next) => {
   try {
-    const [featuredVideos] = await db.query('SELECT * FROM videos ORDER BY created_at DESC LIMIT 3');
-    const [featuredPhotos] = await db.query('SELECT * FROM photos ORDER BY created_at DESC LIMIT 3');
-    const [heroSlides] = await db.query('SELECT * FROM hero_slides ORDER BY order_index ASC');
-    const [ugcItems] = await db.query('SELECT * FROM ugc_items ORDER BY order_index ASC');
+    const now = Date.now();
+    if (homeCache && (now - homeCacheAt) < HOME_CACHE_TTL) {
+      return res.render('index', homeCache);
+    }
 
-    let featuredBrands = DEFAULT_BRANDS;
-    try {
-      const { data: brandRows, error: brandErr } = await db.supabase
+    const [
+      [featuredVideos],
+      [rawPhotos],
+      [heroSlides],
+      [ugcItems],
+      brandResult
+    ] = await Promise.all([
+      db.query('SELECT * FROM videos ORDER BY order_index ASC, created_at DESC LIMIT 6'),
+      db.query('SELECT * FROM photos ORDER BY order_index ASC, created_at DESC LIMIT 36'),
+      db.query('SELECT * FROM hero_slides ORDER BY order_index ASC'),
+      db.query('SELECT * FROM ugc_items ORDER BY order_index ASC'),
+      db.supabase
         .from('featured_brands')
         .select('*')
         .eq('is_active', true)
         .order('order_index', { ascending: true })
-        .order('id', { ascending: true });
-      if (!brandErr && brandRows && brandRows.length > 0) {
-        featuredBrands = brandRows;
-      }
-    } catch (e) {
-      // Fallback to default brands
-    }
+        .order('id', { ascending: true })
+        .then((r) => r)
+        .catch(() => ({ data: null, error: true }))
+    ]);
 
-    res.render('index', { 
-      title: 'Taj Studio — Where Every Frame Tells a Story', 
-      featuredVideos, 
+    const featuredPhotos = groupPhotosIntoStacks(rawPhotos).slice(0, 6);
+
+    const featuredBrands =
+      !brandResult.error && brandResult.data && brandResult.data.length > 0
+        ? brandResult.data
+        : DEFAULT_BRANDS;
+
+    const viewData = {
+      title: 'Taj Studio — Where Every Frame Tells a Story',
+      featuredVideos,
       featuredPhotos,
       heroSlides,
       ugcItems,
       featuredBrands
-    });
+    };
+    homeCache = viewData;
+    homeCacheAt = now;
+
+    res.render('index', viewData);
   } catch (err) {
     console.error('Home Page Error:', err);
     res.render('index', { 
@@ -67,19 +94,19 @@ exports.videoCategory = async (req, res, next) => {
     const limit = 12;
     const offset = (page - 1) * limit;
     
-    const [videos] = await db.query(
-      'SELECT * FROM videos WHERE category = ? ORDER BY order_index ASC, created_at DESC LIMIT ? OFFSET ?',
-      [category, limit, offset]
-    );
-    
-    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM videos WHERE category = ?', [category]);
+    const [
+      [videos],
+      [[{ total }]],
+      [[bannerRow]]
+    ] = await Promise.all([
+      db.query(
+        'SELECT * FROM videos WHERE category = ? ORDER BY order_index ASC, created_at DESC LIMIT ? OFFSET ?',
+        [category, limit, offset]
+      ),
+      db.query('SELECT COUNT(*) as total FROM videos WHERE category = ?', [category]),
+      db.query('SELECT setting_value FROM settings WHERE setting_key = ?', [`banner_videos_${category}`])
+    ]);
     const totalPages = Math.ceil(total / limit) || 1;
-
-    // Fetch page banner
-    const [[bannerRow]] = await db.query(
-      'SELECT setting_value FROM settings WHERE setting_key = ?',
-      [`banner_videos_${category}`]
-    );
     const pageBanner = bannerRow ? bannerRow.setting_value : null;
     
     res.render('category', { 
@@ -108,19 +135,20 @@ exports.photoCategory = async (req, res, next) => {
     const limit = 12;
     const offset = (page - 1) * limit;
     
-    const [photos] = await db.query(
-      'SELECT * FROM photos WHERE category = ? ORDER BY order_index ASC, created_at DESC LIMIT ? OFFSET ?',
-      [category, limit, offset]
-    );
-    
-    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM photos WHERE category = ?', [category]);
+    const [
+      [allCatPhotos],
+      [[bannerRow]]
+    ] = await Promise.all([
+      db.query(
+        'SELECT * FROM photos WHERE category = ? ORDER BY order_index ASC, created_at DESC',
+        [category]
+      ),
+      db.query('SELECT setting_value FROM settings WHERE setting_key = ?', [`banner_photos_${category}`])
+    ]);
+    const allStacks = groupPhotosIntoStacks(allCatPhotos);
+    const total = allStacks.length;
     const totalPages = Math.ceil(total / limit) || 1;
-
-    // Fetch page banner
-    const [[bannerRow]] = await db.query(
-      'SELECT setting_value FROM settings WHERE setting_key = ?',
-      [`banner_photos_${category}`]
-    );
+    const photos = allStacks.slice(offset, offset + limit);
     const pageBanner = bannerRow ? bannerRow.setting_value : null;
     
     res.render('category', { 

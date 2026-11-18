@@ -2,6 +2,7 @@ const db = require('../config/db');
 const fs = require('fs');
 const path = require('path');
 const { uploadFile, deleteFile } = require('../utils/storage');
+const { groupPhotosIntoStacks } = require('../utils/photoStacks');
 
 exports.dashboard = async (req, res, next) => {
   try {
@@ -78,15 +79,27 @@ exports.uploadPhotos = async (req, res, next) => {
   }
 
   try {
-    for (const file of req.files) {
-      const filePath = await uploadFile(file, 'photos');
-      await db.query(
-        'INSERT INTO photos (category, file_path, alt_text) VALUES (?,?,?)',
-        [category, filePath, alt_text || '']
-      );
+    const cleanAlbumTitle = (alt_text || '').trim();
+    const stackKey = `stack_${Date.now()}|${cleanAlbumTitle}`;
+
+    // Upload all selected files in parallel for speed, preserving selection order
+    const uploadedPaths = await Promise.all(
+      req.files.map((file) => uploadFile(file, 'photos'))
+    );
+
+    for (let i = 0; i < uploadedPaths.length; i++) {
+      const filePath = uploadedPaths[i];
+      if (!filePath) continue;
+      await db.supabase.from('photos').insert([{
+        title: stackKey,
+        category,
+        file_path: filePath,
+        alt_text: cleanAlbumTitle,
+        order_index: i
+      }]);
     }
     
-    req.flash('success', `${req.files.length} photo(s) uploaded successfully`);
+    req.flash('success', `Photo stack with ${req.files.length} photo(s) uploaded successfully`);
     res.redirect('/admin/manage-photos');
   } catch (err) {
     console.error('Upload Photos Error:', err);
@@ -107,7 +120,8 @@ exports.manageVideos = async (req, res, next) => {
 
 exports.managePhotos = async (req, res, next) => {
   try {
-    const [photos] = await db.query('SELECT * FROM photos ORDER BY order_index ASC, created_at DESC');
+    const [rawPhotos] = await db.query('SELECT * FROM photos ORDER BY order_index ASC, created_at DESC');
+    const photos = groupPhotosIntoStacks(rawPhotos);
     res.render('admin/manage-photos', { title: 'Manage Photos', photos });
   } catch (err) {
     console.error('Manage Photos Error:', err);
@@ -145,17 +159,88 @@ exports.deleteVideo = async (req, res, next) => {
 
 exports.deletePhoto = async (req, res, next) => {
   try {
-    const [rows] = await db.query('SELECT * FROM photos WHERE id = ?', [req.params.id]);
-    if (rows && rows.length && rows[0].file_path) {
-      await deleteFile(rows[0].file_path);
+    const rawIds = req.body.stack_ids
+      ? String(req.body.stack_ids).split(',').map((n) => Number(n.trim())).filter(Boolean)
+      : [Number(req.params.id)];
+
+    for (const pid of rawIds) {
+      const [rows] = await db.query('SELECT * FROM photos WHERE id = ?', [pid]);
+      if (rows && rows.length && rows[0].file_path) {
+        await deleteFile(rows[0].file_path);
+      }
+      await db.query('DELETE FROM photos WHERE id = ?', [pid]);
     }
-    
-    await db.query('DELETE FROM photos WHERE id = ?', [req.params.id]);
-    req.flash('success', 'Photo deleted successfully');
+
+    req.flash('success', rawIds.length > 1 ? `Photo stack (${rawIds.length} photos) deleted successfully` : 'Photo deleted successfully');
     res.redirect('/admin/manage-photos');
   } catch (err) {
     console.error('Delete Photo Error:', err);
     req.flash('error', 'Failed to delete photo. ' + err.message);
+    res.redirect('/admin/manage-photos');
+  }
+};
+
+exports.updatePhotoStack = async (req, res) => {
+  try {
+    const rawStackKey = (req.body.stack_key || '').trim();
+    const baseKey = rawStackKey.startsWith('stack_') ? rawStackKey.split('|')[0] : `stack_${Date.now()}`;
+    const cleanAlbumTitle = (req.body.album_title || '').trim();
+    const category = (req.body.category || 'wedding').trim();
+    const fullStackTag = `${baseKey}|${cleanAlbumTitle}`;
+
+    const deletedIds = (req.body.deleted_ids || '')
+      .split(',')
+      .map((n) => Number(n.trim()))
+      .filter(Boolean);
+
+    for (const delId of deletedIds) {
+      const [rows] = await db.query('SELECT * FROM photos WHERE id = ?', [delId]);
+      if (rows && rows.length && rows[0].file_path) {
+        await deleteFile(rows[0].file_path);
+      }
+      await db.query('DELETE FROM photos WHERE id = ?', [delId]);
+    }
+
+    const orderedIds = (req.body.ordered_ids || '')
+      .split(',')
+      .map((n) => Number(n.trim()))
+      .filter((id) => id && !deletedIds.includes(id));
+
+    for (let i = 0; i < orderedIds.length; i++) {
+      const pid = orderedIds[i];
+      await db.supabase
+        .from('photos')
+        .update({
+          title: fullStackTag,
+          category,
+          alt_text: cleanAlbumTitle,
+          order_index: i
+        })
+        .eq('id', pid);
+    }
+
+    if (req.files && req.files.length > 0) {
+      const uploadedPaths = await Promise.all(
+        req.files.map((file) => uploadFile(file, 'photos'))
+      );
+      for (let j = 0; j < uploadedPaths.length; j++) {
+        const fp = uploadedPaths[j];
+        if (!fp) continue;
+        await db.supabase.from('photos').insert([{
+          title: fullStackTag,
+          category,
+          file_path: fp,
+          alt_text: cleanAlbumTitle,
+          order_index: orderedIds.length + j
+        }]);
+      }
+    }
+
+    req.flash('success', 'Album stack updated successfully!');
+    res.redirect('/admin/manage-photos');
+  } catch (err) {
+    console.error('Update Photo Stack Error:', err);
+    req.flash('error', 'Failed to update album stack: ' + err.message);
     res.redirect('/admin/manage-photos');
   }
 };
